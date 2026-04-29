@@ -7,8 +7,10 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/category_chip.dart';
 import '../domain/entities/category_entity.dart';
+import '../domain/entities/recurring_rule_entity.dart';
 import '../domain/entities/transaction_entity.dart';
 import '../domain/utils/recurrence_utils.dart';
+import 'cubit/recurring_cubit.dart';
 import 'cubit/transactions_cubit.dart';
 import 'cubit/transactions_state.dart';
 
@@ -148,20 +150,37 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
     final endDate = (_isRecurring && _hasEndDate) ? _endDate : null;
 
     if (_isEditing) {
+      // ── Edit existing transaction ────────────────────────────────────────
       final updated = widget.transaction!.copyWith(
         amount: amount,
         categoryId: _selectedCategoryId!,
         description: _descController.text.trim(),
         date: _selectedDate,
         isIncome: _isIncome,
-        isRecurring: _isRecurring,
-        frequency: _isRecurring ? _frequency : null,
-        endDate: endDate,
-        clearFrequency: !_isRecurring,
-        clearEndDate: !_isRecurring || !_hasEndDate,
+        isRecurring: false, // edited transactions are always concrete
+        clearFrequency: true,
+        clearEndDate: true,
       );
       await cubit.updateTransaction(updated);
+    } else if (_isRecurring) {
+      // ── Create a RecurringRule (engine will generate actual transactions) ─
+      final rule = RecurringRuleEntity(
+        id: const Uuid().v4(),
+        amount: amount,
+        categoryId: _selectedCategoryId!,
+        description: _descController.text.trim(),
+        isIncome: _isIncome,
+        frequency: _frequency,
+        startDate: _selectedDate,
+        endDate: endDate,
+        isActive: true,
+      );
+      // addRule generates the first batch of due transactions automatically.
+      await sl<RecurringCubit>().addRule(rule);
+      // Reload the transactions list so new entries appear.
+      await cubit.loadTransactions();
     } else {
+      // ── Create a one-time transaction ────────────────────────────────────
       final t = TransactionEntity(
         id: const Uuid().v4(),
         amount: amount,
@@ -169,9 +188,6 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
         description: _descController.text.trim(),
         date: _selectedDate,
         isIncome: _isIncome,
-        isRecurring: _isRecurring,
-        frequency: _isRecurring ? _frequency : null,
-        endDate: endDate,
       );
       await cubit.addTransaction(t);
     }

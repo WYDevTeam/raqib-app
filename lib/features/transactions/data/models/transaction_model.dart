@@ -12,6 +12,7 @@ class TransactionModel extends HiveObject {
   final bool isRecurring;
   final String? frequency;
   final DateTime? endDate;
+  final String? ruleId; // link to RecurringRule (null for manual transactions)
 
   TransactionModel({
     required this.id,
@@ -23,6 +24,7 @@ class TransactionModel extends HiveObject {
     required this.isRecurring,
     this.frequency,
     this.endDate,
+    this.ruleId,
   });
 
   TransactionEntity toEntity() => TransactionEntity(
@@ -35,6 +37,7 @@ class TransactionModel extends HiveObject {
         isRecurring: isRecurring,
         frequency: RecurrenceFrequency.fromString(frequency),
         endDate: endDate,
+        ruleId: ruleId,
       );
 
   static TransactionModel fromEntity(TransactionEntity e) => TransactionModel(
@@ -47,6 +50,7 @@ class TransactionModel extends HiveObject {
         isRecurring: e.isRecurring,
         frequency: e.frequency?.hiveKey,
         endDate: e.endDate,
+        ruleId: e.ruleId,
       );
 }
 
@@ -69,14 +73,15 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       isIncome: fields[5] as bool,
       isRecurring: fields[6] as bool,
       frequency: fields[7] as String?,
-      endDate: fields[8] as DateTime?, // null for old records without this field
+      endDate: fields[8] as DateTime?,
+      ruleId: fields[9] as String?, // null for old records
     );
   }
 
   @override
   void write(BinaryWriter writer, TransactionModel obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -94,6 +99,8 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       ..writeByte(7)
       ..write(obj.frequency)
       ..writeByte(8)
-      ..write(obj.endDate);
+      ..write(obj.endDate)
+      ..writeByte(9)
+      ..write(obj.ruleId);
   }
 }

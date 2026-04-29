@@ -7,9 +7,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/app_card.dart';
 import '../domain/entities/category_entity.dart';
+import '../domain/entities/recurring_rule_entity.dart';
 import '../domain/entities/transaction_entity.dart';
 import '../domain/entities/transaction_filter.dart';
 import '../domain/utils/recurrence_utils.dart';
+import 'cubit/recurring_cubit.dart';
+import 'cubit/recurring_state.dart';
 import 'cubit/transactions_cubit.dart';
 import 'cubit/transactions_state.dart';
 import 'widgets/filter_transactions_sheet.dart';
@@ -19,8 +22,15 @@ class TransactionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<TransactionsCubit>()..loadTransactions(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => sl<TransactionsCubit>()..loadTransactions(),
+        ),
+        BlocProvider(
+          create: (_) => sl<RecurringCubit>()..loadRules(),
+        ),
+      ],
       child: const _TransactionsView(),
     );
   }
@@ -131,8 +141,6 @@ class _LoadedTabView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final regular = state.transactions.where((t) => !t.isRecurring).toList();
-    final recurring =
-        state.transactions.where((t) => t.isRecurring).toList();
 
     return Column(
       children: [
@@ -147,6 +155,7 @@ class _LoadedTabView extends StatelessWidget {
         Expanded(
           child: TabBarView(
             children: [
+              // ── Tab 1: Transaction history ──────────────────────────────
               RefreshIndicator(
                 onRefresh: () => context
                     .read<TransactionsCubit>()
@@ -168,20 +177,31 @@ class _LoadedTabView extends StatelessWidget {
                         categories: state.categories,
                       ),
               ),
-              RefreshIndicator(
-                onRefresh: () => context
-                    .read<TransactionsCubit>()
-                    .loadTransactions(filter: state.activeFilter),
-                child: recurring.isEmpty
-                    ? _EmptyState(
-                        message: 'لا توجد معاملات متكررة',
-                        sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
-                        icon: Icons.autorenew,
-                      )
-                    : _RecurringList(
-                        transactions: recurring,
+
+              // ── Tab 2: Recurring rules ─────────────────────────────────
+              BlocBuilder<RecurringCubit, RecurringState>(
+                builder: (ctx, recurringState) {
+                  if (recurringState is RecurringLoaded) {
+                    return RefreshIndicator(
+                      onRefresh: () =>
+                          ctx.read<RecurringCubit>().loadRules(),
+                      child: _RecurringRulesTab(
+                        rules: recurringState.rules,
                         categories: state.categories,
                       ),
+                    );
+                  }
+                  if (recurringState is RecurringProcessing ||
+                      recurringState is RecurringInitial) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+                  return _EmptyState(
+                    message: 'لا توجد معاملات متكررة',
+                    sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
+                    icon: Icons.autorenew,
+                  );
+                },
               ),
             ],
           ),
@@ -365,108 +385,199 @@ class _CategoryIcon extends StatelessWidget {
   }
 }
 
-// ── Recurring list ────────────────────────────────────────────────────────────
+// ── Recurring Rules Tab ───────────────────────────────────────────────────────
 
-class _RecurringList extends StatelessWidget {
-  final List<TransactionEntity> transactions;
+class _RecurringRulesTab extends StatelessWidget {
+  final List<RecurringRuleEntity> rules;
   final List<CategoryEntity> categories;
-  const _RecurringList(
-      {required this.transactions, required this.categories});
+  const _RecurringRulesTab(
+      {required this.rules, required this.categories});
 
   @override
   Widget build(BuildContext context) {
-    // Show active first, then expired.
-    final active = transactions.where((t) => !RecurrenceUtils.isExpired(t)).toList();
-    final expired = transactions.where(RecurrenceUtils.isExpired).toList();
-    final ordered = [...active, ...expired];
+    if (rules.isEmpty) {
+      return _EmptyState(
+        message: 'لا توجد معاملات متكررة',
+        sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
+        icon: Icons.autorenew,
+      );
+    }
 
-    return ListView.separated(
+    final active = rules.where((r) => r.isActive).toList();
+    final inactive = rules.where((r) => !r.isActive).toList();
+    final ordered = [...active, ...inactive];
+
+    return ListView(
       padding: const EdgeInsets.all(20),
-      itemCount: ordered.length,
-      separatorBuilder: (_, index) => const SizedBox(height: 10),
-      itemBuilder: (context, i) {
-        final t = ordered[i];
-        final cat = categories.where((c) => c.id == t.categoryId).firstOrNull;
-        final isExpired = RecurrenceUtils.isExpired(t);
-        final cubit = context.read<TransactionsCubit>();
-
-        DateTime? nextOcc;
-        if (!isExpired && t.frequency != null) {
-          nextOcc = RecurrenceUtils.nextOccurrence(t.date, t.frequency!);
-        }
-
-        return Opacity(
-          opacity: isExpired ? 0.5 : 1.0,
-          child: AppCard(
-            borderColor: isExpired
-                ? AppTheme.textDisabled
-                : AppTheme.primary.withValues(alpha: 0.3),
-            onTap: () => context
-                .push('/transactions/add', extra: t)
-                .then((_) => cubit.loadTransactions()),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: (isExpired ? AppTheme.textDisabled : AppTheme.primary)
-                        .withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isExpired ? Icons.event_busy : Icons.autorenew,
-                    color: isExpired ? AppTheme.textDisabled : AppTheme.primary,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(cat?.name ?? 'غير مصنّف',
-                              style: Theme.of(context).textTheme.titleSmall),
-                          if (isExpired) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.textDisabled.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text('منتهت',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: AppTheme.textSecondary)),
-                            ),
-                          ],
-                        ],
-                      ),
-                      Text(
-                        isExpired
-                            ? 'انتهى في ${RecurrenceUtils.formatDate(t.endDate!)}'
-                            : nextOcc != null
-                                ? '${t.frequency!.arabicLabel} · القادم: ${RecurrenceUtils.formatDate(nextOcc)}'
-                                : t.frequency?.arabicLabel ?? 'متكررة',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isExpired
-                                  ? AppTheme.textSecondary
-                                  : AppTheme.primary,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                AmountText(amount: t.amount, isIncome: t.isIncome),
-              ],
-            ),
+      children: [
+        // Manage all button
+        OutlinedButton.icon(
+          onPressed: () => context.push('/recurring-rules'),
+          icon: const Icon(Icons.settings_outlined, size: 18),
+          label: const Text('إدارة القواعد المتكررة'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppTheme.primary,
+            side: const BorderSide(color: AppTheme.primary),
+            padding: const EdgeInsets.symmetric(vertical: 12),
           ),
-        );
-      },
+        ),
+        const SizedBox(height: 20),
+
+        for (final rule in ordered) ..._buildRuleCard(context, rule),
+        const SizedBox(height: 40),
+      ],
+    );
+  }
+
+  List<Widget> _buildRuleCard(
+      BuildContext context, RecurringRuleEntity rule) {
+    final cat =
+        categories.where((c) => c.id == rule.categoryId).firstOrNull;
+    final isActive = rule.isActive;
+    final accentColor =
+        isActive ? AppTheme.primary : AppTheme.textDisabled;
+
+    DateTime? nextOcc;
+    if (isActive && rule.lastGeneratedDate != null) {
+      nextOcc = RecurrenceUtils.nextOccurrenceAfter(
+          rule.lastGeneratedDate!, rule.frequency);
+      if (rule.endDate != null && nextOcc.isAfter(rule.endDate!)) {
+        nextOcc = null;
+      }
+    } else if (isActive) {
+      nextOcc = rule.startDate;
+    }
+
+    return [
+      Opacity(
+        opacity: isActive ? 1.0 : 0.65,
+        child: AppCard(
+          borderColor: accentColor.withValues(alpha: 0.3),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    cat?.emoji ?? '📋',
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            cat?.name ?? 'غير مصنّف',
+                            style:
+                                Theme.of(context).textTheme.titleSmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!isActive)
+                          _Badge('متوقفة', AppTheme.textSecondary),
+                      ],
+                    ),
+                    Text(
+                      isActive && nextOcc != null
+                          ? '${rule.frequency.arabicLabel} · القادم: ${RecurrenceUtils.formatDate(nextOcc)}'
+                          : rule.frequency.arabicLabel,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: accentColor),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  AmountText(
+                      amount: rule.amount, isIncome: rule.isIncome),
+                  if (isActive)
+                    GestureDetector(
+                      onTap: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('إيقاف القاعدة'),
+                            content: const Text(
+                              'المعاملات المُولَّدة سابقاً لن تُحذَف.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(ctx, false),
+                                child: const Text('إلغاء'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(ctx, true),
+                                child: const Text('إيقاف',
+                                    style: TextStyle(
+                                        color: AppTheme.error)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && context.mounted) {
+                          context
+                              .read<RecurringCubit>()
+                              .stopRule(rule);
+                        }
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Text(
+                          'إيقاف',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
+    ];
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _Badge(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+            fontSize: 10, color: color, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

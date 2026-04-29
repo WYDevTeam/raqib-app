@@ -19,6 +19,7 @@ import 'features/transactions/domain/entities/transaction_entity.dart';
 import 'features/transactions/presentation/add_category_screen.dart';
 import 'features/transactions/presentation/add_transaction_screen.dart';
 import 'features/transactions/presentation/categories_management_screen.dart';
+import 'features/transactions/presentation/recurring_rules_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -58,6 +59,13 @@ final GoRouter appRouter = GoRouter(
           },
         ),
       ],
+    ),
+
+    // ── Recurring Rules Management (root-level full-screen) ──────────────────
+    GoRoute(
+      path: '/recurring-rules',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const RecurringRulesScreen(),
     ),
 
     // ── Bottom nav shell ─────────────────────────────────────────────────────

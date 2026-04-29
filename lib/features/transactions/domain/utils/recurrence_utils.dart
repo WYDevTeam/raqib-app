@@ -17,6 +17,16 @@ abstract final class RecurrenceUtils {
     return next;
   }
 
+  /// Returns the next occurrence strictly AFTER [anchor].
+  /// Used to show "next generation date" in the rules management screen.
+  static DateTime nextOccurrenceAfter(
+      DateTime anchor, RecurrenceFrequency frequency) {
+    return _addPeriod(
+      DateTime(anchor.year, anchor.month, anchor.day),
+      frequency,
+    );
+  }
+
   /// Returns true if the recurring transaction has passed its end date.
   static bool isExpired(TransactionEntity t) {
     if (!t.isRecurring || t.endDate == null) return false;
