@@ -1,6 +1,23 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive/hive.dart';
 
+import '../../features/dashboard/data/models/dashboard_widget_model.dart';
+import '../../features/dashboard/data/repositories/dashboard_repository_impl.dart';
+import '../../features/dashboard/domain/repositories/dashboard_repository.dart';
+import '../../features/dashboard/domain/usecases/get_dashboard_summary_usecase.dart';
+import '../../features/dashboard/domain/usecases/get_dashboard_widgets_usecase.dart';
+import '../../features/dashboard/domain/usecases/update_dashboard_widgets_usecase.dart';
+import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
+import '../../features/debts_amanah/data/models/amanah_model.dart';
+import '../../features/debts_amanah/data/models/debt_model.dart';
+import '../../features/investments/data/models/asset_model.dart';
+import '../../features/investments/data/models/asset_transaction_model.dart';
+import '../../features/onboarding/presentation/cubit/onboarding_cubit.dart';
+import '../../features/settings/data/models/app_settings_model.dart';
+import '../../features/settings/data/repositories/settings_repository_impl.dart';
+import '../../features/settings/domain/repositories/settings_repository.dart';
+import '../../features/settings/domain/usecases/complete_onboarding_usecase.dart';
+import '../../features/settings/domain/usecases/is_onboarding_completed_usecase.dart';
 import '../../features/transactions/data/datasources/category_hive_datasource.dart';
 import '../../features/transactions/data/datasources/recurring_rule_hive_datasource.dart';
 import '../../features/transactions/data/datasources/transaction_hive_datasource.dart';
@@ -19,6 +36,7 @@ import '../../features/transactions/domain/usecases/delete_transaction_usecase.d
 import '../../features/transactions/domain/usecases/get_categories_usecase.dart';
 import '../../features/transactions/domain/usecases/get_recurring_rules_usecase.dart';
 import '../../features/transactions/domain/usecases/get_transactions_usecase.dart';
+import '../../features/transactions/domain/usecases/process_recurring_transactions_usecase.dart';
 import '../../features/transactions/domain/usecases/stop_recurring_rule_usecase.dart';
 import '../../features/transactions/domain/usecases/update_category_usecase.dart';
 import '../../features/transactions/domain/usecases/update_recurring_rule_usecase.dart';
@@ -26,6 +44,7 @@ import '../../features/transactions/domain/usecases/update_transaction_usecase.d
 import '../../features/transactions/presentation/cubit/category_cubit.dart';
 import '../../features/transactions/presentation/cubit/recurring_cubit.dart';
 import '../../features/transactions/presentation/cubit/transactions_cubit.dart';
+import '../services/calculations_service.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -34,6 +53,23 @@ Future<void> setupDI() async {
   final transactionBox = Hive.box<TransactionModel>('transactions');
   final categoryBox = Hive.box<CategoryModel>('categories');
   final recurringRuleBox = Hive.box<RecurringRuleModel>('recurring_rules');
+  final amanahBox = Hive.box<AmanahModel>('amanah');
+  final debtBox = Hive.box<DebtModel>('debts');
+  final assetBox = Hive.box<AssetModel>('assets');
+  final assetTxBox = Hive.box<AssetTransactionModel>('asset_transactions');
+  final settingsBox = Hive.box<AppSettingsModel>('settings');
+  final widgetsBox = Hive.box<DashboardWidgetModel>('dashboard_widgets');
+
+  // ── Core services ──────────────────────────────────────────────────────────
+  sl.registerLazySingleton(
+    () => CalculationsService(
+      txBox: transactionBox,
+      amanahBox: amanahBox,
+      debtBox: debtBox,
+      assetBox: assetBox,
+      settingsBox: settingsBox,
+    ),
+  );
 
   // ── Datasources ────────────────────────────────────────────────────────────
   sl.registerLazySingleton<TransactionHiveDatasource>(
@@ -53,6 +89,9 @@ Future<void> setupDI() async {
   sl.registerLazySingleton<RecurringRuleRepository>(
     () => RecurringRuleRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton<DashboardRepository>(
+    () => DashboardRepositoryImpl(calc: sl(), widgetsBox: widgetsBox),
+  );
 
   // ── Use cases — Transactions ───────────────────────────────────────────────
   sl.registerLazySingleton(() => GetTransactionsUseCase(sl()));
@@ -70,6 +109,23 @@ Future<void> setupDI() async {
   sl.registerLazySingleton(() => UpdateRecurringRuleUseCase(sl()));
   sl.registerLazySingleton(() => StopRecurringRuleUseCase(sl()));
   sl.registerLazySingleton(() => ResumeRecurringRuleUseCase(sl()));
+  sl.registerLazySingleton(() => ProcessRecurringTransactionsUseCase(
+        getRules: sl(),
+        addTransaction: sl(),
+        updateRule: sl(),
+      ));
+
+  // ── Use cases — Dashboard ──────────────────────────────────────────────────
+  sl.registerLazySingleton(() => GetDashboardSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetDashboardWidgetsUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateDashboardWidgetsUseCase(sl()));
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<SettingsRepository>(
+    () => SettingsRepositoryImpl(settingsBox),
+  );
+  sl.registerLazySingleton(() => CompleteOnboardingUseCase(sl()));
+  sl.registerLazySingleton(() => IsOnboardingCompletedUseCase(sl()));
 
   // ── Cubits (factory: fresh instance per screen) ────────────────────────────
   sl.registerFactory(
@@ -80,5 +136,16 @@ Future<void> setupDI() async {
   );
   sl.registerFactory(
     () => RecurringCubit(sl(), sl(), sl(), sl(), sl(), sl()),
+  );
+  sl.registerFactory(
+    () => DashboardCubit(sl(), sl(), sl()),
+  );
+  sl.registerFactory(
+    () => OnboardingCubit(
+      completeOnboarding: sl(),
+      addTransaction: sl(),
+      assetBox: assetBox,
+      assetTxBox: assetTxBox,
+    ),
   );
 }

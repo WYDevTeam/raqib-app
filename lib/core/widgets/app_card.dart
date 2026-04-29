@@ -9,10 +9,13 @@ class AppCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final Color? borderColor;
 
+  final Color? backgroundColor;
+
   const AppCard({
     super.key,
     required this.child,
     this.padding,
+    this.backgroundColor,
     this.onTap,
     this.onLongPress,
     this.borderColor,
@@ -26,7 +29,7 @@ class AppCard extends StatelessWidget {
       child: Container(
         padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: backgroundColor ?? AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: borderColor ?? const Color(0xFFEFEFEF)),
         ),

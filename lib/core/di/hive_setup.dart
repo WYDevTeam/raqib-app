@@ -50,9 +50,36 @@ abstract final class HiveSetup {
     final categoryBox = Hive.box<CategoryModel>('categories');
     await CategoryHiveDatasource(categoryBox).seedDefaultsIfEmpty();
 
+    // Fixed-ID category used by onboarding opening-balance transaction.
+    if (!categoryBox.containsKey('opening_balance')) {
+      await categoryBox.put(
+        'opening_balance',
+        CategoryModel(
+          id: 'opening_balance',
+          name: 'رصيد افتتاحي',
+          emoji: '🏦',
+          colorValue: 0xFF2E6FF2,
+          typeValue: 0, // income
+        ),
+      );
+    }
+
     final settingsBox = Hive.box<AppSettingsModel>('settings');
     if (settingsBox.isEmpty) {
       await settingsBox.put('settings', AppSettingsModel());
+    }
+
+    final widgetsBox = Hive.box<DashboardWidgetModel>('dashboard_widgets');
+    if (widgetsBox.isEmpty) {
+      final defaults = [
+        DashboardWidgetModel(id: 'net_worth', title: 'صافي الثروة', formulaExpression: '', isVisible: true, sortOrder: 0),
+        DashboardWidgetModel(id: 'pnl', title: 'الربح والخسارة', formulaExpression: '', isVisible: true, sortOrder: 1),
+        DashboardWidgetModel(id: 'assets', title: 'أصولي', formulaExpression: '', isVisible: true, sortOrder: 2),
+        DashboardWidgetModel(id: 'reminders', title: 'تذكيرات', formulaExpression: '', isVisible: true, sortOrder: 3),
+      ];
+      for (final w in defaults) {
+        await widgetsBox.put(w.id, w);
+      }
     }
   }
 }

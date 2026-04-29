@@ -4,7 +4,7 @@ import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/di/hive_setup.dart';
 import 'core/di/injection.dart';
-import 'features/transactions/presentation/cubit/recurring_cubit.dart';
+import 'features/transactions/domain/usecases/process_recurring_transactions_usecase.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,5 +12,5 @@ void main() async {
   await HiveSetup.initialize();
   await setupDI();
   runApp(const MainApp());
-  sl<RecurringCubit>().processAllRules();
+  sl<ProcessRecurringTransactionsUseCase>()();
 }
