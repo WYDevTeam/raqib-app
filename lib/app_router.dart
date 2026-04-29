@@ -14,10 +14,16 @@ import 'features/investments/presentation/investments_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/subscription/presentation/subscription_screen.dart';
+import 'features/transactions/domain/entities/category_entity.dart';
+import 'features/transactions/domain/entities/transaction_entity.dart';
+import 'features/transactions/presentation/add_category_screen.dart';
 import 'features/transactions/presentation/add_transaction_screen.dart';
+import 'features/transactions/presentation/categories_management_screen.dart';
+import 'features/transactions/presentation/recurring_rules_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _rootNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -37,12 +43,35 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const AddInvestmentScreen(),
     ),
+
+    // ── Categories (root-level full-screen) ─────────────────────────────────
+    GoRoute(
+      path: '/categories',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const CategoriesManagementScreen(),
+      routes: [
+        GoRoute(
+          path: 'add',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) {
+            final category = state.extra as CategoryEntity?;
+            return AddCategoryScreen(category: category);
+          },
+        ),
+      ],
+    ),
+
+    // ── Recurring Rules Management (root-level full-screen) ──────────────────
+    GoRoute(
+      path: '/recurring-rules',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const RecurringRulesScreen(),
+    ),
+
+    // ── Bottom nav shell ─────────────────────────────────────────────────────
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) {
-        return MainShellScreen(
-          navigationShell: navigationShell,
-        );
-      },
+      builder: (context, state, navigationShell) =>
+          MainShellScreen(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(
           routes: [
@@ -58,10 +87,12 @@ final GoRouter appRouter = GoRouter(
                       path: 'formula-builder',
                       parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) {
-                        final extra = state.extra as Map<String, dynamic>?;
+                        final extra =
+                            state.extra as Map<String, dynamic>?;
                         return FormulaBuilderScreen(
                           initialTitle: extra?['title'] as String?,
-                          initialFormulaParts: extra?['formulaParts'] as List<String>?,
+                          initialFormulaParts:
+                              extra?['formulaParts'] as List<String>?,
                         );
                       },
                     ),
@@ -70,12 +101,14 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'formula-builder',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) => const FormulaBuilderScreen(),
+                  builder: (context, state) =>
+                      const FormulaBuilderScreen(),
                 ),
               ],
             ),
           ],
         ),
+
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -85,12 +118,18 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'add',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) => const AddTransactionScreen(),
+                  builder: (context, state) {
+                    final transaction =
+                        state.extra as TransactionEntity?;
+                    return AddTransactionScreen(
+                        transaction: transaction);
+                  },
                 ),
               ],
             ),
           ],
         ),
+
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -106,9 +145,11 @@ final GoRouter appRouter = GoRouter(
                   path: 'details',
                   parentNavigatorKey: _rootNavigatorKey,
                   builder: (context, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
+                    final extra =
+                        state.extra as Map<String, dynamic>?;
                     return AssetDetailsScreen(
-                      assetName: extra?['assetName'] as String? ?? 'تفاصيل الأصل',
+                      assetName: extra?['assetName'] as String? ??
+                          'تفاصيل الأصل',
                     );
                   },
                 ),
@@ -116,6 +157,7 @@ final GoRouter appRouter = GoRouter(
             ),
           ],
         ),
+
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -125,12 +167,14 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'add',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) => const AddDebtAmanahScreen(),
+                  builder: (context, state) =>
+                      const AddDebtAmanahScreen(),
                 ),
               ],
             ),
           ],
         ),
+
         StatefulShellBranch(
           routes: [
             GoRoute(
