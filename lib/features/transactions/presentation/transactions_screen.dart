@@ -1,314 +1,517 @@
 import 'package:flutter/material.dart';
-
-import '../../../../core/theme/app_theme.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/injection.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/amount_text.dart';
+import '../../../core/widgets/app_card.dart';
+import '../domain/entities/category_entity.dart';
+import '../domain/entities/transaction_entity.dart';
+import 'cubit/transactions_cubit.dart';
+import 'cubit/transactions_state.dart';
 import 'widgets/filter_transactions_sheet.dart';
 
 class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({super.key});
 
-  void _showAddTransaction(BuildContext context) {
-    context.push('/transactions/add');
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<TransactionsCubit>()..loadTransactions(),
+      child: const _TransactionsView(),
+    );
   }
+}
+
+class _TransactionsView extends StatelessWidget {
+  const _TransactionsView();
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('المعاملات اليومية'),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const TabBar(
-                  indicator: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
+    return BlocBuilder<TransactionsCubit, TransactionsState>(
+      builder: (context, state) {
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('المعاملات'),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(56),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const TabBar(
+                      indicator: BoxDecoration(
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: AppTheme.textSecondary,
+                      dividerColor: Colors.transparent,
+                      labelStyle: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13),
+                      tabs: [
+                        Tab(text: 'سجل المعاملات'),
+                        Tab(text: 'المتكررة'),
+                      ],
+                    ),
                   ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: AppTheme.textSecondary,
-                  dividerColor: Colors.transparent,
-                  labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: [
-                    Tab(text: 'سجل المعاملات'),
-                    Tab(text: 'المتكررة'),
-                  ],
                 ),
               ),
+              actions: [
+                if (state is TransactionsLoaded)
+                  Badge(
+                    isLabelVisible: state.activeFilter != null,
+                    child: IconButton(
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: () => _showFilter(context, state),
+                    ),
+                  ),
+              ],
+            ),
+            body: switch (state) {
+              TransactionsInitial() =>
+                const Center(child: CircularProgressIndicator()),
+              TransactionsLoading() =>
+                const Center(child: CircularProgressIndicator()),
+              TransactionsError(:final message) =>
+                _ErrorView(message: message),
+              TransactionsLoaded() => _LoadedTabView(state: state),
+            },
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => _pushAdd(context, state),
+              backgroundColor: AppTheme.primary,
+              child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (context) => const FilterTransactionsSheet(),
-                );
-              },
-            ),
-          ],
-        ),
-        body: TabBarView(
-          children: [
-            ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _buildSummaryCards(context),
-                const SizedBox(height: 24),
-                Text('اليوم', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                _buildTransactionTile(
-                  context,
-                  'قهوة',
-                  'Food & Drink',
-                  '-\$5.00',
-                  false,
-                ),
-                _buildTransactionTile(
-                  context,
-                  'راتب شهري',
-                  'Income',
-                  '+\$3,000.00',
-                  true,
-                ),
-                const SizedBox(height: 24),
-                Text('أمس', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                _buildTransactionTile(
-                  context,
-                  'بنزين',
-                  'Transport',
-                  '-\$45.00',
-                  false,
-                ),
-                _buildTransactionTile(
-                  context,
-                  'سوبر ماركت',
-                  'Groceries',
-                  '-\$120.00',
-                  false,
-                ),
-              ],
-            ),
-            ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _buildRecurringTile(
-                  context,
-                  'إيجار المنزل',
-                  'سكن',
-                  '-\$500.00',
-                  false,
-                  'يوم 1 من كل شهر',
-                ),
-                _buildRecurringTile(
-                  context,
-                  'راتب شهري',
-                  'دخل أساسي',
-                  '+\$3,000.00',
-                  true,
-                  'يوم 25 من كل شهر',
-                ),
-                _buildRecurringTile(
-                  context,
-                  'اشتراك إنترنت',
-                  'خدمات',
-                  '-\$40.00',
-                  false,
-                  'يوم 15 من كل شهر',
-                ),
-              ],
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddTransaction(context),
-          backgroundColor: AppTheme.primary,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSummaryCards(BuildContext context) {
-    return Row(
+  void _pushAdd(BuildContext context, TransactionsState state) {
+    final cubit = context.read<TransactionsCubit>();
+    final filter =
+        state is TransactionsLoaded ? state.activeFilter : null;
+    context
+        .push('/transactions/add')
+        .then((_) => cubit.loadTransactions(filter: filter));
+  }
+
+  void _showFilter(BuildContext context, TransactionsLoaded state) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => FilterTransactionsSheet(
+        categories: state.categories,
+        activeFilter: state.activeFilter,
+        onApply: (filter) =>
+            context.read<TransactionsCubit>().loadTransactions(filter: filter),
+      ),
+    );
+  }
+}
+
+// ── Loaded content ──────────────────────────────────────────────────────────
+
+class _LoadedTabView extends StatelessWidget {
+  final TransactionsLoaded state;
+  const _LoadedTabView({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final regular = state.transactions.where((t) => !t.isRecurring).toList();
+    final recurring =
+        state.transactions.where((t) => t.isRecurring).toList();
+
+    return TabBarView(
       children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppTheme.secondary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'الدخل الحقيقي',
-                  style: Theme.of(context).textTheme.bodySmall,
+        RefreshIndicator(
+          onRefresh: () => context
+              .read<TransactionsCubit>()
+              .loadTransactions(filter: state.activeFilter),
+          child: regular.isEmpty
+              ? _EmptyState(
+                  message: 'لا توجد معاملات',
+                  sub: 'اضغط + لإضافة معاملتك الأولى',
+                  icon: Icons.receipt_long_outlined,
+                )
+              : _TransactionsList(
+                  transactions: regular,
+                  categories: state.categories,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '+\$3,000.00',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: AppTheme.secondary),
-                ),
-              ],
-            ),
-          ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.error.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'المصاريف الحقيقية',
-                  style: Theme.of(context).textTheme.bodySmall,
+        RefreshIndicator(
+          onRefresh: () => context
+              .read<TransactionsCubit>()
+              .loadTransactions(filter: state.activeFilter),
+          child: recurring.isEmpty
+              ? _EmptyState(
+                  message: 'لا توجد معاملات متكررة',
+                  sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
+                  icon: Icons.autorenew,
+                )
+              : _RecurringList(
+                  transactions: recurring,
+                  categories: state.categories,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '-\$170.00',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: AppTheme.error),
-                ),
-              ],
-            ),
-          ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildTransactionTile(
-    BuildContext context,
-    String title,
-    String category,
-    String amount,
-    bool isIncome,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
-      ),
+class _TransactionsList extends StatelessWidget {
+  final List<TransactionEntity> transactions;
+  final List<CategoryEntity> categories;
+  const _TransactionsList(
+      {required this.transactions, required this.categories});
+
+  @override
+  Widget build(BuildContext context) {
+    final totalIncome = transactions
+        .where((t) => t.isIncome)
+        .fold<double>(0, (s, t) => s + t.amount);
+    final totalExpense = transactions
+        .where((t) => !t.isIncome)
+        .fold<double>(0, (s, t) => s + t.amount);
+
+    final grouped = <String, List<TransactionEntity>>{};
+    for (final t in transactions) {
+      grouped.putIfAbsent(_dateKey(t.date), () => []).add(t);
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _SummaryRow(totalIncome: totalIncome, totalExpense: totalExpense),
+        const SizedBox(height: 20),
+        for (final entry in grouped.entries) ...[
+          Text(_dateLabel(entry.key),
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          for (final t in entry.value)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _TransactionTile(
+                transaction: t,
+                category: categories
+                    .where((c) => c.id == t.categoryId)
+                    .firstOrNull,
+              ),
+            ),
+          const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+
+  String _dateKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String _dateLabel(String key) {
+    final parts = key.split('-');
+    final date = DateTime(
+        int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(date.year, date.month, date.day);
+    if (d == today) return 'اليوم';
+    if (d == today.subtract(const Duration(days: 1))) return 'أمس';
+    const months = [
+      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+}
+
+// ── Transaction tile ─────────────────────────────────────────────────────────
+
+class _TransactionTile extends StatelessWidget {
+  final TransactionEntity transaction;
+  final CategoryEntity? category;
+  const _TransactionTile({required this.transaction, this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<TransactionsCubit>();
+    return AppCard(
+      onTap: () {
+        context
+            .push('/transactions/add', extra: transaction)
+            .then((_) => cubit.loadTransactions());
+      },
+      onLongPress: () => _confirmDelete(context, cubit),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isIncome
-                  ? AppTheme.secondary.withValues(alpha: 0.1)
-                  : AppTheme.error.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-              color: isIncome ? AppTheme.secondary : AppTheme.error,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
+          _CategoryIcon(category: category),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                Text(category, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  category?.name ?? 'غير مصنّف',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                if (transaction.description.isNotEmpty)
+                  Text(
+                    transaction.description,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
-          Text(
-            amount,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isIncome ? AppTheme.secondary : AppTheme.error,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              AmountText(
+                  amount: transaction.amount,
+                  isIncome: transaction.isIncome),
+              Text(_shortDate(transaction.date),
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRecurringTile(
-    BuildContext context,
-    String title,
-    String category,
-    String amount,
-    bool isIncome,
-    String schedule,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+  String _shortDate(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(d.year, d.month, d.day);
+    if (day == today) return 'اليوم';
+    if (day == today.subtract(const Duration(days: 1))) return 'أمس';
+    return '${d.day}/${d.month}/${d.year}';
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, TransactionsCubit cubit) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف المعاملة'),
+        content: const Text('هل أنت متأكد من حذف هذه المعاملة؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child:
+                const Text('حذف', style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.autorenew,
-              color: AppTheme.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                Text(
-                  '$category • $schedule',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.primary),
+    );
+    if (confirmed == true) cubit.deleteTransaction(transaction.id);
+  }
+}
+
+class _CategoryIcon extends StatelessWidget {
+  final CategoryEntity? category;
+  const _CategoryIcon({this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        category != null ? Color(category!.colorValue) : AppTheme.primary;
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(category?.emoji ?? '📦',
+            style: const TextStyle(fontSize: 20)),
+      ),
+    );
+  }
+}
+
+// ── Recurring list ────────────────────────────────────────────────────────────
+
+class _RecurringList extends StatelessWidget {
+  final List<TransactionEntity> transactions;
+  final List<CategoryEntity> categories;
+  const _RecurringList(
+      {required this.transactions, required this.categories});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: transactions.length,
+      separatorBuilder: (_, index) => const SizedBox(height: 10),
+      itemBuilder: (context, i) {
+        final t = transactions[i];
+        final cat =
+            categories.where((c) => c.id == t.categoryId).firstOrNull;
+        final cubit = context.read<TransactionsCubit>();
+        return AppCard(
+          borderColor: AppTheme.primary.withValues(alpha: 0.3),
+          onTap: () => context
+              .push('/transactions/add', extra: t)
+              .then((_) => cubit.loadTransactions()),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
+                child: const Icon(Icons.autorenew,
+                    color: AppTheme.primary, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(cat?.name ?? 'غير مصنّف',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      '${cat?.emoji ?? ''} ${t.frequency?.arabicLabel ?? 'متكررة'}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: AppTheme.primary),
+                    ),
+                  ],
+                ),
+              ),
+              AmountText(amount: t.amount, isIncome: t.isIncome),
+            ],
           ),
-          Text(
-            amount,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: isIncome ? AppTheme.secondary : AppTheme.error,
-              fontWeight: FontWeight.bold,
-            ),
+        );
+      },
+    );
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+class _SummaryRow extends StatelessWidget {
+  final double totalIncome;
+  final double totalExpense;
+  const _SummaryRow(
+      {required this.totalIncome, required this.totalExpense});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+            child: _SummaryCard(
+                label: 'إجمالي الدخل',
+                amount: totalIncome,
+                isIncome: true)),
+        const SizedBox(width: 12),
+        Expanded(
+            child: _SummaryCard(
+                label: 'إجمالي المصروف',
+                amount: totalExpense,
+                isIncome: false)),
+      ],
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String label;
+  final double amount;
+  final bool isIncome;
+  const _SummaryCard(
+      {required this.label, required this.amount, required this.isIncome});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isIncome ? AppTheme.secondary : AppTheme.error;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          AmountText(amount: amount, isIncome: isIncome),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  final String sub;
+  final IconData icon;
+  const _EmptyState(
+      {required this.message, required this.sub, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 64, color: AppTheme.textDisabled),
+              const SizedBox(height: 16),
+              Text(message,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(sub,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorView extends StatelessWidget {
+  final String message;
+  const _ErrorView({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () =>
+                context.read<TransactionsCubit>().loadTransactions(),
+            child: const Text('إعادة المحاولة'),
           ),
         ],
       ),
