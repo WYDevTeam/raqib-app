@@ -11,6 +11,7 @@ class TransactionModel extends HiveObject {
   final bool isIncome;
   final bool isRecurring;
   final String? frequency;
+  final DateTime? endDate;
 
   TransactionModel({
     required this.id,
@@ -21,6 +22,7 @@ class TransactionModel extends HiveObject {
     required this.isIncome,
     required this.isRecurring,
     this.frequency,
+    this.endDate,
   });
 
   TransactionEntity toEntity() => TransactionEntity(
@@ -32,6 +34,7 @@ class TransactionModel extends HiveObject {
         isIncome: isIncome,
         isRecurring: isRecurring,
         frequency: RecurrenceFrequency.fromString(frequency),
+        endDate: endDate,
       );
 
   static TransactionModel fromEntity(TransactionEntity e) => TransactionModel(
@@ -43,6 +46,7 @@ class TransactionModel extends HiveObject {
         isIncome: e.isIncome,
         isRecurring: e.isRecurring,
         frequency: e.frequency?.hiveKey,
+        endDate: e.endDate,
       );
 }
 
@@ -65,13 +69,14 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       isIncome: fields[5] as bool,
       isRecurring: fields[6] as bool,
       frequency: fields[7] as String?,
+      endDate: fields[8] as DateTime?, // null for old records without this field
     );
   }
 
   @override
   void write(BinaryWriter writer, TransactionModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -87,6 +92,8 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       ..writeByte(6)
       ..write(obj.isRecurring)
       ..writeByte(7)
-      ..write(obj.frequency);
+      ..write(obj.frequency)
+      ..writeByte(8)
+      ..write(obj.endDate);
   }
 }

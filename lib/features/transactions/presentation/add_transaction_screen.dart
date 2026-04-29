@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/category_chip.dart';
 import '../domain/entities/category_entity.dart';
 import '../domain/entities/transaction_entity.dart';
+import '../domain/utils/recurrence_utils.dart';
 import 'cubit/transactions_cubit.dart';
 import 'cubit/transactions_state.dart';
 
@@ -42,6 +43,8 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   DateTime _selectedDate = DateTime.now();
   bool _isRecurring = false;
   RecurrenceFrequency _frequency = RecurrenceFrequency.monthly;
+  bool _hasEndDate = false;
+  DateTime? _endDate;
 
   bool get _isEditing => widget.transaction != null;
 
@@ -51,12 +54,15 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
     final t = widget.transaction;
     if (t != null) {
       _isIncome = t.isIncome;
-      _amountController.text = t.amount.toString();
+      _amountController.text = t.amount.toStringAsFixed(
+          t.amount == t.amount.roundToDouble() ? 0 : 2);
       _descController.text = t.description;
       _selectedCategoryId = t.categoryId;
       _selectedDate = t.date;
       _isRecurring = t.isRecurring;
       _frequency = t.frequency ?? RecurrenceFrequency.monthly;
+      _hasEndDate = t.endDate != null;
+      _endDate = t.endDate;
     }
   }
 
@@ -66,6 +72,8 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
     _descController.dispose();
     super.dispose();
   }
+
+  // ── Pickers ──────────────────────────────────────────────────────────────
 
   void _showCategoryPicker(BuildContext context, List<CategoryEntity> cats) {
     showModalBottomSheet(
@@ -81,38 +89,63 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
     );
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickStartDate() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _isRecurring ? _selectedDate : (_selectedDate.isAfter(today) ? today : _selectedDate),
+      initialDate: _isRecurring
+          ? _selectedDate
+          : (_selectedDate.isAfter(today) ? today : _selectedDate),
       firstDate: DateTime(2000),
-      lastDate: _isRecurring ? DateTime(2100) : today,
+      // Non-recurring can't be in the future; recurring can.
+      lastDate: _isRecurring
+          ? (_hasEndDate && _endDate != null ? _endDate! : DateTime(2100))
+          : today,
       locale: const Locale('ar'),
     );
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  String _formatDate(DateTime d) {
-    const months = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-    ];
-    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  Future<void> _pickEndDate() async {
+    // End date must be after start date.
+    final minDate = _selectedDate.add(const Duration(days: 1));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate != null && _endDate!.isAfter(minDate)
+          ? _endDate!
+          : minDate,
+      firstDate: minDate,
+      lastDate: DateTime(2100),
+      locale: const Locale('ar'),
+    );
+    if (picked != null) setState(() => _endDate = picked);
   }
+
+  // ── Save / Delete ─────────────────────────────────────────────────────────
 
   Future<void> _save(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategoryId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء اختيار فئة')),
+        const SnackBar(
+            content: Text('الرجاء اختيار فئة'),
+            behavior: SnackBarBehavior.floating),
+      );
+      return;
+    }
+    if (_isRecurring && _hasEndDate && _endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('الرجاء تحديد تاريخ انتهاء التكرار'),
+            behavior: SnackBarBehavior.floating),
       );
       return;
     }
 
     final amount = double.parse(_amountController.text.trim());
     final cubit = context.read<TransactionsCubit>();
+    final endDate = (_isRecurring && _hasEndDate) ? _endDate : null;
 
     if (_isEditing) {
       final updated = widget.transaction!.copyWith(
@@ -123,6 +156,9 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
         isIncome: _isIncome,
         isRecurring: _isRecurring,
         frequency: _isRecurring ? _frequency : null,
+        endDate: endDate,
+        clearFrequency: !_isRecurring,
+        clearEndDate: !_isRecurring || !_hasEndDate,
       );
       await cubit.updateTransaction(updated);
     } else {
@@ -135,6 +171,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
         isIncome: _isIncome,
         isRecurring: _isRecurring,
         frequency: _isRecurring ? _frequency : null,
+        endDate: endDate,
       );
       await cubit.addTransaction(t);
     }
@@ -154,16 +191,21 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
               child: const Text('إلغاء')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('حذف', style: TextStyle(color: AppTheme.error)),
+            child:
+                const Text('حذف', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),
     );
     if (confirmed == true && context.mounted) {
-      context.read<TransactionsCubit>().deleteTransaction(widget.transaction!.id);
+      context
+          .read<TransactionsCubit>()
+          .deleteTransaction(widget.transaction!.id);
       Navigator.pop(context);
     }
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -171,11 +213,11 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
 
     return BlocBuilder<TransactionsCubit, TransactionsState>(
       builder: (context, state) {
-        final categories =
-            state is TransactionsLoaded ? state.categories : <CategoryEntity>[];
-        final selectedCat = categories
-            .where((c) => c.id == _selectedCategoryId)
-            .firstOrNull;
+        final categories = state is TransactionsLoaded
+            ? state.categories
+            : <CategoryEntity>[];
+        final selectedCat =
+            categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
 
         return Scaffold(
           appBar: AppBar(
@@ -183,7 +225,8 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
             actions: [
               if (_isEditing)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+                  icon:
+                      const Icon(Icons.delete_outline, color: AppTheme.error),
                   tooltip: 'حذف المعاملة',
                   onPressed: () => _confirmDelete(context),
                 ),
@@ -196,7 +239,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Type toggle ──────────────────────────────────────
+                  // ── Type toggle ────────────────────────────────────────
                   Row(
                     children: [
                       Expanded(
@@ -204,8 +247,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                           label: 'مصروف',
                           isSelected: !_isIncome,
                           color: AppTheme.error,
-                          onTap: () =>
-                              setState(() => _isIncome = false),
+                          onTap: () => setState(() => _isIncome = false),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -214,23 +256,23 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                           label: 'دخل',
                           isSelected: _isIncome,
                           color: AppTheme.secondary,
-                          onTap: () =>
-                              setState(() => _isIncome = true),
+                          onTap: () => setState(() => _isIncome = true),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Amount ──────────────────────────────────────────
+                  // ── Amount ────────────────────────────────────────────
                   TextFormField(
                     controller: _amountController,
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          color: accentColor,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .displaySmall
+                        ?.copyWith(
+                            color: accentColor, fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
                       labelText: 'المبلغ',
                       prefixText: '\$ ',
@@ -239,51 +281,50 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                     validator: (v) {
                       if (v == null || v.isEmpty) return 'أدخل المبلغ';
                       final n = double.tryParse(v);
-                      if (n == null || n <= 0) return 'المبلغ يجب أن يكون أكبر من 0';
+                      if (n == null || n <= 0) {
+                        return 'المبلغ يجب أن يكون أكبر من 0';
+                      }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Category ─────────────────────────────────────────
+                  // ── Category ──────────────────────────────────────────
                   GestureDetector(
                     onTap: () => _showCategoryPicker(context, categories),
                     child: InputDecorator(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'الفئة',
-                        suffixIcon: const Icon(Icons.chevron_left),
-                        errorText: null,
+                        suffixIcon: Icon(Icons.chevron_left),
                       ),
                       child: selectedCat != null
-                          ? Row(
-                              children: [
-                                Text(selectedCat.emoji,
-                                    style: const TextStyle(fontSize: 18)),
-                                const SizedBox(width: 8),
-                                Text(selectedCat.name),
-                              ],
-                            )
-                          : Text(
-                              'اختر فئة',
-                              style: TextStyle(color: AppTheme.textDisabled),
-                            ),
+                          ? Row(children: [
+                              Text(selectedCat.emoji,
+                                  style: const TextStyle(fontSize: 18)),
+                              const SizedBox(width: 8),
+                              Text(selectedCat.name),
+                            ])
+                          : Text('اختر فئة',
+                              style: TextStyle(
+                                  color: AppTheme.textDisabled)),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Date ──────────────────────────────────────────────
-                  if (!_isRecurring)
+                  // ── Date (non-recurring only) ──────────────────────────
+                  if (!_isRecurring) ...[
                     GestureDetector(
-                      onTap: _pickDate,
+                      onTap: _pickStartDate,
                       child: InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'تاريخ المعاملة',
                           suffixIcon: Icon(Icons.calendar_today_outlined),
                         ),
-                        child: Text(_formatDate(_selectedDate)),
+                        child: Text(RecurrenceUtils.formatDate(_selectedDate)),
                       ),
                     ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                  ],
 
                   // ── Description ───────────────────────────────────────
                   TextFormField(
@@ -295,7 +336,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ── Recurring ─────────────────────────────────────────
+                  // ── Recurring toggle ──────────────────────────────────
                   Container(
                     decoration: BoxDecoration(
                       color: AppTheme.surface,
@@ -304,19 +345,41 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                     ),
                     child: SwitchListTile(
                       title: const Text('اجعلها متكررة'),
+                      subtitle: Text(
+                        _isRecurring
+                            ? 'يتكرر تلقائياً حسب التكرار المحدد'
+                            : 'معاملة لمرة واحدة',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                       value: _isRecurring,
-                      onChanged: (v) =>
-                          setState(() => _isRecurring = v),
+                      onChanged: (v) => setState(() {
+                        _isRecurring = v;
+                        if (!v) {
+                          _hasEndDate = false;
+                          _endDate = null;
+                          // Reset date to today for non-recurring.
+                          final now = DateTime.now();
+                          _selectedDate =
+                              DateTime(now.year, now.month, now.day);
+                        }
+                      }),
                       activeThumbColor: AppTheme.primary,
                       contentPadding:
                           const EdgeInsets.symmetric(horizontal: 16),
                     ),
                   ),
 
+                  // ── Recurring details ─────────────────────────────────
                   if (_isRecurring) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+
+                    // Frequency chips
+                    Text('التكرار',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 4,
                       children: RecurrenceFrequency.values.map((f) {
                         final sel = _frequency == f;
                         return ChoiceChip(
@@ -327,8 +390,10 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                           selectedColor:
                               AppTheme.primary.withValues(alpha: 0.15),
                           side: BorderSide(
-                              color:
-                                  sel ? AppTheme.primary : AppTheme.textDisabled),
+                            color: sel
+                                ? AppTheme.primary
+                                : AppTheme.textDisabled,
+                          ),
                           labelStyle: TextStyle(
                             color: sel
                                 ? AppTheme.primary
@@ -340,6 +405,78 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Start date
+                    GestureDetector(
+                      onTap: _pickStartDate,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'تاريخ البداية (أول تكرار)',
+                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        child: Text(RecurrenceUtils.formatDate(_selectedDate)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Next occurrence info chip
+                    _NextOccurrenceChip(
+                        startDate: _selectedDate, frequency: _frequency),
+                    const SizedBox(height: 12),
+
+                    // End date toggle
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFEFEFEF)),
+                      ),
+                      child: SwitchListTile(
+                        title: const Text('تحديد تاريخ انتهاء'),
+                        subtitle: Text(
+                          _hasEndDate && _endDate != null
+                              ? 'ينتهي في ${RecurrenceUtils.formatDate(_endDate!)}'
+                              : 'لا ينتهي (مستمر)',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        value: _hasEndDate,
+                        onChanged: (v) => setState(() {
+                          _hasEndDate = v;
+                          if (!v) _endDate = null;
+                        }),
+                        activeThumbColor: AppTheme.primary,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                    ),
+
+                    if (_hasEndDate) ...[
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _pickEndDate,
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'تاريخ الانتهاء',
+                            suffixIcon:
+                                const Icon(Icons.event_busy_outlined),
+                            errorText: _hasEndDate && _endDate == null
+                                ? 'اختر تاريخ الانتهاء'
+                                : null,
+                          ),
+                          child: Text(
+                            _endDate != null
+                                ? RecurrenceUtils.formatDate(_endDate!)
+                                : 'اضغط لاختيار التاريخ',
+                            style: TextStyle(
+                              color: _endDate == null
+                                  ? AppTheme.textDisabled
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
 
                   const SizedBox(height: 32),
@@ -359,6 +496,43 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Next occurrence info widget ───────────────────────────────────────────────
+
+class _NextOccurrenceChip extends StatelessWidget {
+  final DateTime startDate;
+  final RecurrenceFrequency frequency;
+  const _NextOccurrenceChip(
+      {required this.startDate, required this.frequency});
+
+  @override
+  Widget build(BuildContext context) {
+    final next = RecurrenceUtils.nextOccurrence(startDate, frequency);
+    final label = RecurrenceUtils.formatDate(next);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.event_repeat, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            'التكرار القادم: $label',
+            style: const TextStyle(
+                color: AppTheme.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -427,7 +601,8 @@ class _CategoryPickerSheet extends StatelessWidget {
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
-                child: Text('لا توجد فئات، أضف فئة من إدارة الفئات'),
+                child: Text('لا توجد فئات مناسبة.\nاضغط "إدارة الفئات" لإضافة فئة.',
+                    textAlign: TextAlign.center),
               ),
             )
           else

@@ -13,6 +13,9 @@ class CategoryCubit extends Cubit<CategoryState> {
   final UpdateCategoryUseCase _updateCategory;
   final DeleteCategoryUseCase _deleteCategory;
 
+  // Cache the last loaded list so errors don't blank the screen.
+  List<CategoryEntity> _lastCategories = [];
+
   CategoryCubit(
     this._getCategories,
     this._addCategory,
@@ -24,37 +27,47 @@ class CategoryCubit extends Cubit<CategoryState> {
     emit(const CategoryLoading());
     final result = await _getCategories();
     result.fold(
-      (failure) => emit(CategoryError(failure.message)),
-      (categories) => emit(CategoryLoaded(categories)),
+      (failure) => emit(CategoryError(failure.message, _lastCategories)),
+      (categories) {
+        _lastCategories = categories;
+        emit(CategoryLoaded(categories));
+      },
     );
   }
 
-  Future<void> addCategory(CategoryEntity category) async {
+  /// Returns true on success, false on failure (error emitted as state).
+  Future<bool> addCategory(CategoryEntity category) async {
     final result = await _addCategory(category);
+    bool success = false;
     result.fold(
-      (failure) => emit(CategoryError(failure.message)),
-      (_) => loadCategories(),
+      (failure) => emit(CategoryError(failure.message, _lastCategories)),
+      (_) => success = true,
     );
+    if (success) await loadCategories();
+    return success;
   }
 
-  Future<void> updateCategory(CategoryEntity category) async {
+  /// Returns true on success, false on failure.
+  Future<bool> updateCategory(CategoryEntity category) async {
     final result = await _updateCategory(category);
+    bool success = false;
     result.fold(
-      (failure) => emit(CategoryError(failure.message)),
-      (_) => loadCategories(),
+      (failure) => emit(CategoryError(failure.message, _lastCategories)),
+      (_) => success = true,
     );
+    if (success) await loadCategories();
+    return success;
   }
 
+  /// Returns true on success (deleted), false when blocked (has transactions).
   Future<bool> deleteCategory(String id) async {
     final result = await _deleteCategory(id);
     bool success = false;
     result.fold(
-      (failure) => emit(CategoryError(failure.message)),
-      (_) {
-        success = true;
-        loadCategories();
-      },
+      (failure) => emit(CategoryError(failure.message, _lastCategories)),
+      (_) => success = true,
     );
+    if (success) await loadCategories();
     return success;
   }
 }

@@ -27,10 +27,13 @@ class TransactionEntity {
   final double amount;
   final String categoryId;
   final String description;
+  // For recurring: this is the start date (first occurrence).
+  // For one-time: this is the actual transaction date.
   final DateTime date;
   final bool isIncome;
   final bool isRecurring;
   final RecurrenceFrequency? frequency;
+  final DateTime? endDate; // recurring only; null = never ends
 
   const TransactionEntity({
     required this.id,
@@ -41,6 +44,7 @@ class TransactionEntity {
     required this.isIncome,
     this.isRecurring = false,
     this.frequency,
+    this.endDate,
   });
 
   TransactionEntity copyWith({
@@ -52,6 +56,9 @@ class TransactionEntity {
     bool? isIncome,
     bool? isRecurring,
     RecurrenceFrequency? frequency,
+    DateTime? endDate,
+    bool clearEndDate = false,
+    bool clearFrequency = false,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -61,7 +68,8 @@ class TransactionEntity {
       date: date ?? this.date,
       isIncome: isIncome ?? this.isIncome,
       isRecurring: isRecurring ?? this.isRecurring,
-      frequency: frequency ?? this.frequency,
+      frequency: clearFrequency ? null : (frequency ?? this.frequency),
+      endDate: clearEndDate ? null : (endDate ?? this.endDate),
     );
   }
 }

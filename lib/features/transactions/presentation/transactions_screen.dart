@@ -9,6 +9,7 @@ import '../../../core/widgets/app_card.dart';
 import '../domain/entities/category_entity.dart';
 import '../domain/entities/transaction_entity.dart';
 import '../domain/entities/transaction_filter.dart';
+import '../domain/utils/recurrence_utils.dart';
 import 'cubit/transactions_cubit.dart';
 import 'cubit/transactions_state.dart';
 import 'widgets/filter_transactions_sheet.dart';
@@ -374,51 +375,95 @@ class _RecurringList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Show active first, then expired.
+    final active = transactions.where((t) => !RecurrenceUtils.isExpired(t)).toList();
+    final expired = transactions.where(RecurrenceUtils.isExpired).toList();
+    final ordered = [...active, ...expired];
+
     return ListView.separated(
       padding: const EdgeInsets.all(20),
-      itemCount: transactions.length,
+      itemCount: ordered.length,
       separatorBuilder: (_, index) => const SizedBox(height: 10),
       itemBuilder: (context, i) {
-        final t = transactions[i];
-        final cat =
-            categories.where((c) => c.id == t.categoryId).firstOrNull;
+        final t = ordered[i];
+        final cat = categories.where((c) => c.id == t.categoryId).firstOrNull;
+        final isExpired = RecurrenceUtils.isExpired(t);
         final cubit = context.read<TransactionsCubit>();
-        return AppCard(
-          borderColor: AppTheme.primary.withValues(alpha: 0.3),
-          onTap: () => context
-              .push('/transactions/add', extra: t)
-              .then((_) => cubit.loadTransactions()),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+
+        DateTime? nextOcc;
+        if (!isExpired && t.frequency != null) {
+          nextOcc = RecurrenceUtils.nextOccurrence(t.date, t.frequency!);
+        }
+
+        return Opacity(
+          opacity: isExpired ? 0.5 : 1.0,
+          child: AppCard(
+            borderColor: isExpired
+                ? AppTheme.textDisabled
+                : AppTheme.primary.withValues(alpha: 0.3),
+            onTap: () => context
+                .push('/transactions/add', extra: t)
+                .then((_) => cubit.loadTransactions()),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: (isExpired ? AppTheme.textDisabled : AppTheme.primary)
+                        .withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isExpired ? Icons.event_busy : Icons.autorenew,
+                    color: isExpired ? AppTheme.textDisabled : AppTheme.primary,
+                    size: 22,
+                  ),
                 ),
-                child: const Icon(Icons.autorenew,
-                    color: AppTheme.primary, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(cat?.name ?? 'غير مصنّف',
-                        style: Theme.of(context).textTheme.titleSmall),
-                    Text(
-                      '${cat?.emoji ?? ''} ${t.frequency?.arabicLabel ?? 'متكررة'}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppTheme.primary),
-                    ),
-                  ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(cat?.name ?? 'غير مصنّف',
+                              style: Theme.of(context).textTheme.titleSmall),
+                          if (isExpired) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textDisabled.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('منتهت',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppTheme.textSecondary)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        isExpired
+                            ? 'انتهى في ${RecurrenceUtils.formatDate(t.endDate!)}'
+                            : nextOcc != null
+                                ? '${t.frequency!.arabicLabel} · القادم: ${RecurrenceUtils.formatDate(nextOcc)}'
+                                : t.frequency?.arabicLabel ?? 'متكررة',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isExpired
+                                  ? AppTheme.textSecondary
+                                  : AppTheme.primary,
+                            ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              AmountText(amount: t.amount, isIncome: t.isIncome),
-            ],
+                AmountText(amount: t.amount, isIncome: t.isIncome),
+              ],
+            ),
           ),
         );
       },

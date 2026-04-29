@@ -89,6 +89,7 @@ class _AddCategoryViewState extends State<_AddCategoryView> {
     if (!_formKey.currentState!.validate()) return;
 
     final cubit = context.read<CategoryCubit>();
+    bool success;
 
     if (_isEditing) {
       final updated = widget.category!.copyWith(
@@ -97,7 +98,7 @@ class _AddCategoryViewState extends State<_AddCategoryView> {
         colorValue: _selectedColor.toARGB32(),
         type: _selectedType,
       );
-      await cubit.updateCategory(updated);
+      success = await cubit.updateCategory(updated);
     } else {
       final cat = CategoryEntity(
         id: const Uuid().v4(),
@@ -106,10 +107,11 @@ class _AddCategoryViewState extends State<_AddCategoryView> {
         colorValue: _selectedColor.toARGB32(),
         type: _selectedType,
       );
-      await cubit.addCategory(cat);
+      success = await cubit.addCategory(cat);
     }
 
-    if (context.mounted) Navigator.pop(context);
+    // Only pop on success; error is shown via BlocListener snackbar.
+    if (success && context.mounted) Navigator.pop(context);
   }
 
   void _showEmojiPicker() {

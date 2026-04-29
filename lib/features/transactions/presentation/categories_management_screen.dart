@@ -30,22 +30,29 @@ class _CategoriesView extends StatelessWidget {
       body: BlocConsumer<CategoryCubit, CategoryState>(
         listener: (context, state) {
           if (state is CategoryError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppTheme.error,
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppTheme.error,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
           }
         },
-        builder: (context, state) => switch (state) {
-          CategoryInitial() ||
-          CategoryLoading() ||
-          CategoryOperationSuccess() =>
-            const Center(child: CircularProgressIndicator()),
-          CategoryError(:final message) => _ErrorView(message: message),
-          CategoryLoaded(:final categories) =>
-            _CategoriesList(categories: categories),
+        builder: (context, state) {
+          // Always resolve to a category list; never blank the screen on error.
+          final categories = switch (state) {
+            CategoryLoaded(:final categories) => categories,
+            CategoryError(:final categories) => categories,
+            _ => null,
+          };
+
+          if (categories == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return _CategoriesList(categories: categories);
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -58,9 +65,7 @@ class _CategoriesView extends StatelessWidget {
 
   void _navigateToAdd(BuildContext context) {
     final cubit = context.read<CategoryCubit>();
-    context
-        .push('/categories/add')
-        .then((_) => cubit.loadCategories());
+    context.push('/categories/add').then((_) => cubit.loadCategories());
   }
 }
 
@@ -77,7 +82,11 @@ class _CategoriesList extends StatelessWidget {
           children: [
             Icon(Icons.category_outlined, size: 64, color: AppTheme.textDisabled),
             SizedBox(height: 16),
-            Text('لا توجد فئات', style: TextStyle(color: AppTheme.textSecondary)),
+            Text('لا توجد فئات',
+                style: TextStyle(color: AppTheme.textSecondary)),
+            SizedBox(height: 8),
+            Text('اضغط + لإضافة فئة جديدة',
+                style: TextStyle(color: AppTheme.textDisabled, fontSize: 13)),
           ],
         ),
       );
@@ -87,10 +96,7 @@ class _CategoriesList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: categories.length,
       separatorBuilder: (context, i) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final cat = categories[i];
-        return _CategoryTile(category: cat);
-      },
+      itemBuilder: (context, i) => _CategoryTile(category: categories[i]),
     );
   }
 }
@@ -132,14 +138,16 @@ class _CategoryTile extends StatelessWidget {
                 children: [
                   Text(category.name,
                       style: Theme.of(context).textTheme.titleSmall),
-                  Text(category.type.arabicLabel,
-                      style: TextStyle(
-                          fontSize: 12, color: color)),
+                  Text(
+                    category.type.arabicLabel,
+                    style: TextStyle(fontSize: 12, color: color),
+                  ),
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+              icon:
+                  const Icon(Icons.more_vert, color: AppTheme.textSecondary),
               onPressed: () => _showOptions(context),
             ),
           ],
@@ -153,7 +161,7 @@ class _CategoryTile extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (sheetCtx) => Container(
         decoration: const BoxDecoration(
           color: AppTheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -175,20 +183,26 @@ class _CategoryTile extends StatelessWidget {
               leading: const Icon(Icons.edit_outlined),
               title: const Text('تعديل الفئة'),
               onTap: () {
-                Navigator.pop(context);
-                context
-                    .push('/categories/add', extra: category)
-                    .then((_) => cubit.loadCategories());
+                Navigator.pop(sheetCtx);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) {
+                    context
+                        .push('/categories/add', extra: category)
+                        .then((_) => cubit.loadCategories());
+                  }
+                });
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.delete_outline, color: AppTheme.error),
+              leading: const Icon(Icons.delete_outline, color: AppTheme.error),
               title: const Text('حذف الفئة',
                   style: TextStyle(color: AppTheme.error)),
               onTap: () {
-                Navigator.pop(context);
-                _confirmDelete(context, cubit);
+                Navigator.pop(sheetCtx);
+                // Wait for sheet close animation before showing dialog.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (context.mounted) _confirmDelete(context, cubit);
+                });
               },
             ),
             const SizedBox(height: 8),
@@ -217,30 +231,6 @@ class _CategoryTile extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed == true) cubit.deleteCategory(category.id);
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  const _ErrorView({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
-          const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () => context.read<CategoryCubit>().loadCategories(),
-            child: const Text('إعادة المحاولة'),
-          ),
-        ],
-      ),
-    );
+    if (confirmed == true) await cubit.deleteCategory(category.id);
   }
 }
