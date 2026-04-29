@@ -163,7 +163,7 @@ Future<void> setupDI() async {
   sl.registerFactory(
     () => RecurringCubit(sl(), sl(), sl(), sl(), sl(), sl()),
   );
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => DashboardCubit(sl(), sl(), sl()),
   );
   sl.registerFactory(

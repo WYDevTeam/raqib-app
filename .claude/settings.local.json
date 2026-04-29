@@ -3,7 +3,8 @@
     "allow": [
       "Skill(update-config)",
       "Bash(flutter build *)",
-      "Bash(flutter run *)"
+      "Bash(flutter run *)",
+      "Bash(curl *)"
     ]
   }
 }

@@ -34,8 +34,10 @@ class ApiService {
 
       // api.metals.dev returns USD per troy ounce directly under 'metals'
       final metals = data['metals'] as Map<String, dynamic>;
-      final goldPerOunce = (metals['XAU'] as num).toDouble();
-      final silverPerOunce = (metals['XAG'] as num).toDouble();
+      final goldPerOunce = (metals['gold'] as num).toDouble();
+      final silverPerOunce = (metals['silver'] as num).toDouble();
+      final platinumPerOunce = (metals['platinum'] as num).toDouble();
+      final palladiumPerOunce = (metals['palladium'] as num).toDouble();
 
       const gramsPerOunce = 31.1035;
       final prices = {
@@ -43,6 +45,10 @@ class ApiService {
         'gold_per_gram': goldPerOunce / gramsPerOunce,
         'silver_per_ounce': silverPerOunce,
         'silver_per_gram': silverPerOunce / gramsPerOunce,
+        'platinum_per_ounce': platinumPerOunce,
+        'platinum_per_gram': platinumPerOunce / gramsPerOunce,
+        'palladium_per_ounce': palladiumPerOunce,
+        'palladium_per_gram': palladiumPerOunce / gramsPerOunce,
       };
 
       _metalsCache[key] = (prices: prices, fetchedAt: DateTime.now());
@@ -98,6 +104,18 @@ class ApiService {
               ? (prices['silver_per_gram'] ?? asset.currentValuePerUnit)
               : (prices['silver_per_ounce'] ?? asset.currentValuePerUnit);
 
+        case 'platinum':
+          final prices = await getMetalsPrices();
+          return asset.unit == 'غرام'
+              ? (prices['platinum_per_gram'] ?? asset.currentValuePerUnit)
+              : (prices['platinum_per_ounce'] ?? asset.currentValuePerUnit);
+
+        case 'palladium':
+          final prices = await getMetalsPrices();
+          return asset.unit == 'غرام'
+              ? (prices['palladium_per_gram'] ?? asset.currentValuePerUnit)
+              : (prices['palladium_per_ounce'] ?? asset.currentValuePerUnit);
+
         case 'crypto':
           final symbol =
               asset.symbol.isNotEmpty ? asset.symbol : 'BTCUSDT';
@@ -115,7 +133,7 @@ class ApiService {
   /// Writes back to Hive so values persist across restarts.
   Future<void> refreshAssetPrices(List<AssetModel> assets) async {
     for (final asset in assets) {
-      if (asset.type == 'other') continue;
+      if (asset.type == 'other' || asset.symbol.isEmpty && asset.type == 'crypto') continue;
       final price = await getAssetPrice(asset);
       if (price <= 0) continue;
       asset.currentValuePerUnit = price;

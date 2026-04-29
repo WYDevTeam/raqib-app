@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 import '../../domain/entities/category_entity.dart';
@@ -44,10 +45,11 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
+    final field2 = fields[2];
     return CategoryModel(
       id: fields[0] as String,
       name: fields[1] as String,
-      iconCodePoint: fields[2] as int,
+      iconCodePoint: field2 is int ? field2 : Icons.category.codePoint,
       colorValue: fields[3] as int,
       typeValue: fields[4] as int,
     );

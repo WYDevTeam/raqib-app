@@ -36,9 +36,13 @@ abstract final class HiveSetup {
 
   static Future<void> _openBoxes() async {
     await Hive.openBox<TransactionModel>('transactions');
-    // Migration: categories schema changed from emoji:String → iconCodePoint:int.
-    // Delete stale box so it re-seeds with icon codepoints.
-    await Hive.deleteBoxFromDisk('categories');
+    // Migration v2: run once — delete stale categories box (emoji→iconCodePoint).
+    // Uses a plain Box<bool> as a migration flag so it never runs twice.
+    final migBox = await Hive.openBox<bool>('_migrations');
+    if (migBox.get('cat_icon_v2') != true) {
+      await Hive.deleteBoxFromDisk('categories');
+      await migBox.put('cat_icon_v2', true);
+    }
     await Hive.openBox<CategoryModel>('categories');
     await Hive.openBox<RecurringRuleModel>('recurring_rules');
     await Hive.openBox<AssetModel>('assets');
@@ -77,12 +81,25 @@ abstract final class HiveSetup {
     if (widgetsBox.isEmpty) {
       final defaults = [
         DashboardWidgetModel(id: 'net_worth', title: 'صافي الثروة', formulaExpression: '', isVisible: true, sortOrder: 0),
-        DashboardWidgetModel(id: 'pnl', title: 'الربح والخسارة', formulaExpression: '', isVisible: true, sortOrder: 1),
-        DashboardWidgetModel(id: 'assets', title: 'أصولي', formulaExpression: '', isVisible: true, sortOrder: 2),
-        DashboardWidgetModel(id: 'reminders', title: 'تذكيرات', formulaExpression: '', isVisible: true, sortOrder: 3),
+        DashboardWidgetModel(id: 'cash', title: 'الكاش الفعلي', formulaExpression: '', isVisible: true, sortOrder: 1),
+        DashboardWidgetModel(id: 'pnl', title: 'الربح والخسارة', formulaExpression: '', isVisible: true, sortOrder: 2),
+        DashboardWidgetModel(id: 'assets', title: 'أصولي', formulaExpression: '', isVisible: true, sortOrder: 3),
+        DashboardWidgetModel(id: 'reminders', title: 'تذكيرات', formulaExpression: '', isVisible: true, sortOrder: 4),
+        DashboardWidgetModel(id: 'debts', title: 'الديون المستحقة', formulaExpression: '', isVisible: true, sortOrder: 5),
       ];
       for (final w in defaults) {
         await widgetsBox.put(w.id, w);
+      }
+    } else {
+      // Migration: add missing widget IDs for existing users
+      final missing = [
+        DashboardWidgetModel(id: 'cash', title: 'الكاش الفعلي', formulaExpression: '', isVisible: true, sortOrder: 1),
+        DashboardWidgetModel(id: 'debts', title: 'الديون المستحقة', formulaExpression: '', isVisible: true, sortOrder: 5),
+      ];
+      for (final w in missing) {
+        if (!widgetsBox.containsKey(w.id)) {
+          await widgetsBox.put(w.id, w);
+        }
       }
     }
   }

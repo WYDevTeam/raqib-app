@@ -266,23 +266,14 @@ class _DashboardViewState extends State<_DashboardView> {
             Icons.money_off,
             AppTheme.warning,
           ),
-      'ميزانية التسوق': (ctx) => _buildSummaryCard(
-            ctx,
-            'ميزانية التسوق',
-            '---',
-            Icons.shopping_bag_outlined,
-            Colors.purple,
-          ),
     };
 
-    // Map dashboard widget IDs to overview item keys
     final overviewItems = <String, bool>{
-      'الكاش الفعلي': true,
+      'الكاش الفعلي': idSet.contains('cash'),
       'الربح الحقيقي (P&L)': idSet.contains('pnl'),
       'إجمالي المعادن': idSet.contains('assets'),
       'أمانات عندي': idSet.contains('reminders'),
-      'الديون المستحقة': false,
-      'ميزانية التسوق': false,
+      'الديون المستحقة': idSet.contains('debts'),
     };
 
     return Column(
@@ -310,14 +301,11 @@ class _DashboardViewState extends State<_DashboardView> {
                   if (current is! DashboardLoaded) return;
                   final updated = current.widgets.map((w) {
                     return switch (w.id) {
-                      'pnl' => w.copyWith(
-                          isVisible:
-                              result['الربح الحقيقي (P&L)'] ?? true),
-                      'assets' => w.copyWith(
-                          isVisible:
-                              result['إجمالي المعادن'] ?? true),
-                      'reminders' => w.copyWith(
-                          isVisible: result['أمانات عندي'] ?? true),
+                      'cash' => w.copyWith(isVisible: result['الكاش الفعلي'] ?? true),
+                      'pnl' => w.copyWith(isVisible: result['الربح الحقيقي (P&L)'] ?? true),
+                      'assets' => w.copyWith(isVisible: result['إجمالي المعادن'] ?? true),
+                      'reminders' => w.copyWith(isVisible: result['أمانات عندي'] ?? true),
+                      'debts' => w.copyWith(isVisible: result['الديون المستحقة'] ?? true),
                       _ => w,
                     };
                   }).toList();

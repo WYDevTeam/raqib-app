@@ -65,17 +65,16 @@ class _InvestmentsView extends StatelessWidget {
                   ),
                 ),
               ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    final cubit = context.read<InvestmentsCubit>();
-                    context.push('/investments/add').then((_) {
-                      if (context.mounted) cubit.loadInvestments();
-                    });
-                  },
-                ),
-              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () {
+                final cubit = context.read<InvestmentsCubit>();
+                context.push('/investments/add').then((_) {
+                  if (context.mounted) cubit.loadInvestments();
+                });
+              },
+              backgroundColor: AppTheme.primary,
+              child: const Icon(Icons.add, color: Colors.white),
             ),
             body: state is InvestmentsLoading && loaded == null
                 ? const Center(child: CircularProgressIndicator())
@@ -396,6 +395,8 @@ class _InvestmentsView extends StatelessWidget {
 IconData _iconForType(String type) => switch (type) {
       'gold' => Icons.diamond,
       'silver' => Icons.diamond_outlined,
+      'platinum' => Icons.circle,
+      'palladium' => Icons.circle_outlined,
       'crypto' => Icons.currency_bitcoin,
       _ => Icons.account_balance,
     };
@@ -403,6 +404,8 @@ IconData _iconForType(String type) => switch (type) {
 Color _colorForType(String type) => switch (type) {
       'gold' => Colors.amber,
       'silver' => Colors.blueGrey,
+      'platinum' => const Color(0xFF78909C),
+      'palladium' => const Color(0xFF546E7A),
       'crypto' => Colors.orange,
       _ => AppTheme.primary,
     };

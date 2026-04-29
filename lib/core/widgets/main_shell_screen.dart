@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
+import '../di/injection.dart';
+
 class MainShellScreen extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
-  
+
   const MainShellScreen({
-    super.key, 
+    super.key,
     required this.navigationShell,
   });
 
   void _onTap(int index) {
+    if (index == 0) sl<DashboardCubit>().refresh();
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,

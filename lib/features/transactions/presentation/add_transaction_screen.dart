@@ -47,6 +47,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   RecurrenceFrequency _frequency = RecurrenceFrequency.monthly;
   bool _hasEndDate = false;
   DateTime? _endDate;
+  List<CategoryEntity> _categories = [];
 
   bool get _isEditing => widget.transaction != null;
 
@@ -229,16 +230,16 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   @override
   Widget build(BuildContext context) {
     final accentColor = _isIncome ? AppTheme.secondary : AppTheme.error;
+    final selectedCat =
+        _categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
 
-    return BlocBuilder<TransactionsCubit, TransactionsState>(
-      builder: (context, state) {
-        final categories = state is TransactionsLoaded
-            ? state.categories
-            : <CategoryEntity>[];
-        final selectedCat =
-            categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
-
-        return Scaffold(
+    return BlocListener<TransactionsCubit, TransactionsState>(
+      listener: (context, state) {
+        if (state is TransactionsLoaded) {
+          setState(() => _categories = state.categories);
+        }
+      },
+      child: Scaffold(
           appBar: AppBar(
             title: Text(_isEditing ? 'تعديل المعاملة' : 'معاملة جديدة'),
             actions: [
@@ -316,7 +317,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
 
                   // ── Category ──────────────────────────────────────────
                   GestureDetector(
-                    onTap: () => _showCategoryPicker(context, categories),
+                    onTap: () => _showCategoryPicker(context, _categories),
                     child: InputDecorator(
                       decoration: const InputDecoration(
                         labelText: 'الفئة',
@@ -331,7 +332,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                                 color: Color(selectedCat.colorValue),
                               ),
                               const SizedBox(width: 8),
-                              Text(selectedCat.name),
+                              Expanded(child: Text(selectedCat.name, overflow: TextOverflow.ellipsis)),
                             ])
                           : Text('اختر فئة',
                               style: TextStyle(
@@ -525,9 +526,8 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
               ),
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
   }
 }
 
@@ -637,7 +637,7 @@ class _CategoryPickerSheet extends StatelessWidget {
               ),
             )
           else
-            Flexible(
+            SingleChildScrollView(
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
