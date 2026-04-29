@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/either.dart';
 import '../../domain/entities/recurring_rule_entity.dart';
 import '../../domain/repositories/transaction_repository.dart';
 import '../../domain/usecases/add_recurring_rule_usecase.dart';

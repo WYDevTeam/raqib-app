@@ -111,11 +111,13 @@ class _TransactionsView extends StatelessWidget {
 
   void _pushAdd(BuildContext context, TransactionsState state) {
     final cubit = context.read<TransactionsCubit>();
+    final recurringCubit = context.read<RecurringCubit>();
     final filter =
         state is TransactionsLoaded ? state.activeFilter : null;
-    context
-        .push('/transactions/add')
-        .then((_) => cubit.loadTransactions(filter: filter));
+    context.push('/transactions/add').then((_) {
+      cubit.loadTransactions(filter: filter);
+      recurringCubit.loadRules();
+    });
   }
 
   void _showFilter(BuildContext context, TransactionsLoaded state) {

@@ -24,6 +24,7 @@ abstract final class RecurringService {
   static List<TransactionEntity> generateDue(
     RecurringRuleEntity rule, {
     DateTime? overrideToday,
+    int maxOccurrences = 500,
   }) {
     if (!rule.isActive) return [];
 
@@ -52,7 +53,7 @@ abstract final class RecurringService {
 
     final generated = <TransactionEntity>[];
 
-    while (!cursor.isAfter(today)) {
+    while (!cursor.isAfter(today) && generated.length < maxOccurrences) {
       // Stop if past endDate.
       if (rule.endDate != null && cursor.isAfter(_dateOnly(rule.endDate!))) {
         break;
@@ -67,7 +68,7 @@ abstract final class RecurringService {
           description: rule.description,
           date: cursor,
           isIncome: rule.isIncome,
-          isRecurring: false, // these are concrete transactions, not rules
+          isRecurring: false,
           ruleId: rule.id,
         ));
       }
