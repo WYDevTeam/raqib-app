@@ -62,12 +62,6 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const SubscriptionScreen(),
     ),
-    GoRoute(
-      path: '/investments/add',
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const AddInvestmentScreen(),
-    ),
-
     // ── Categories (root-level full-screen) ─────────────────────────────────
     GoRoute(
       path: '/categories',
@@ -178,12 +172,8 @@ final GoRouter appRouter = GoRouter(
                   path: 'details',
                   parentNavigatorKey: _rootNavigatorKey,
                   builder: (context, state) {
-                    final extra =
-                        state.extra as Map<String, dynamic>?;
-                    return AssetDetailsScreen(
-                      assetName: extra?['assetName'] as String? ??
-                          'تفاصيل الأصل',
-                    );
+                    final assetId = state.extra as String;
+                    return AssetDetailsScreen(assetId: assetId);
                   },
                 ),
               ],

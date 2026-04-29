@@ -21,14 +21,14 @@ enum CategoryType {
 class CategoryEntity {
   final String id;
   final String name;
-  final String emoji;
+  final int iconCodePoint;
   final int colorValue;
   final CategoryType type;
 
   const CategoryEntity({
     required this.id,
     required this.name,
-    required this.emoji,
+    required this.iconCodePoint,
     required this.colorValue,
     required this.type,
   });
@@ -36,14 +36,14 @@ class CategoryEntity {
   CategoryEntity copyWith({
     String? id,
     String? name,
-    String? emoji,
+    int? iconCodePoint,
     int? colorValue,
     CategoryType? type,
   }) {
     return CategoryEntity(
       id: id ?? this.id,
       name: name ?? this.name,
-      emoji: emoji ?? this.emoji,
+      iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       colorValue: colorValue ?? this.colorValue,
       type: type ?? this.type,
     );

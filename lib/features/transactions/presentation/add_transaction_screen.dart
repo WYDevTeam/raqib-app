@@ -78,6 +78,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   // ── Pickers ──────────────────────────────────────────────────────────────
 
   void _showCategoryPicker(BuildContext context, List<CategoryEntity> cats) {
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -92,6 +93,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   }
 
   Future<void> _pickStartDate() async {
+    FocusScope.of(context).unfocus();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final picked = await showDatePicker(
@@ -110,6 +112,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   }
 
   Future<void> _pickEndDate() async {
+    FocusScope.of(context).unfocus();
     // End date must be after start date.
     final minDate = _selectedDate.add(const Duration(days: 1));
     final picked = await showDatePicker(
@@ -263,7 +266,10 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                           label: 'مصروف',
                           isSelected: !_isIncome,
                           color: AppTheme.error,
-                          onTap: () => setState(() => _isIncome = false),
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            setState(() => _isIncome = false);
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -272,7 +278,10 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                           label: 'دخل',
                           isSelected: _isIncome,
                           color: AppTheme.secondary,
-                          onTap: () => setState(() => _isIncome = true),
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            setState(() => _isIncome = true);
+                          },
                         ),
                       ),
                     ],
@@ -315,8 +324,12 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                       ),
                       child: selectedCat != null
                           ? Row(children: [
-                              Text(selectedCat.emoji,
-                                  style: const TextStyle(fontSize: 18)),
+                              Icon(
+                                IconData(selectedCat.iconCodePoint,
+                                    fontFamily: 'MaterialIcons'),
+                                size: 18,
+                                color: Color(selectedCat.colorValue),
+                              ),
                               const SizedBox(width: 8),
                               Text(selectedCat.name),
                             ])
@@ -368,17 +381,19 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                         style: const TextStyle(fontSize: 12),
                       ),
                       value: _isRecurring,
-                      onChanged: (v) => setState(() {
-                        _isRecurring = v;
-                        if (!v) {
-                          _hasEndDate = false;
-                          _endDate = null;
-                          // Reset date to today for non-recurring.
-                          final now = DateTime.now();
-                          _selectedDate =
-                              DateTime(now.year, now.month, now.day);
-                        }
-                      }),
+                      onChanged: (v) {
+                        FocusScope.of(context).unfocus();
+                        setState(() {
+                          _isRecurring = v;
+                          if (!v) {
+                            _hasEndDate = false;
+                            _endDate = null;
+                            final now = DateTime.now();
+                            _selectedDate =
+                                DateTime(now.year, now.month, now.day);
+                          }
+                        });
+                      },
                       activeThumbColor: AppTheme.primary,
                       contentPadding:
                           const EdgeInsets.symmetric(horizontal: 16),
@@ -628,7 +643,7 @@ class _CategoryPickerSheet extends StatelessWidget {
                 runSpacing: 8,
                 children: filtered.map((cat) {
                   return CategoryChip(
-                    emoji: cat.emoji,
+                    iconCodePoint: cat.iconCodePoint,
                     label: cat.name,
                     color: Color(cat.colorValue),
                     isSelected: cat.id == selectedId,

@@ -67,6 +67,21 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          _buildSettingsSection(
+            context,
+            title: 'إدارة البيانات',
+            children: [
+              ListTile(
+                leading: const Icon(Icons.category_outlined,
+                    color: AppTheme.primary),
+                title: const Text('الفئات'),
+                subtitle: const Text('إضافة، تعديل، حذف فئات المعاملات'),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () => context.push('/categories'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           Text(
             'كيف تُحسب أرقامي؟',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.primary),

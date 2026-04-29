@@ -171,7 +171,7 @@ class _FilterTransactionsSheetState extends State<FilterTransactionsSheet> {
                 children: widget.categories.map((cat) {
                   final sel = _selectedCategoryIds.contains(cat.id);
                   return CategoryChip(
-                    emoji: cat.emoji,
+                    iconCodePoint: cat.iconCodePoint,
                     label: cat.name,
                     color: Color(cat.colorValue),
                     isSelected: sel,

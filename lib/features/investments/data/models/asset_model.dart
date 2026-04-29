@@ -3,12 +3,13 @@ import 'package:hive/hive.dart';
 class AssetModel extends HiveObject {
   final String id;
   final String name;
-  final String type; // 'gold', 'silver', 'crypto', 'other'
-  final String symbol; // 'XAU', 'XAG', 'BTCUSDT', '' for manual
-  final double quantity;
-  final String unit; // 'غرام', 'BTC', 'عقار', etc.
-  final double totalCost;
+  final String type;
+  final String symbol;
+  double quantity;
+  final String unit;
+  double totalCost;
   double currentValuePerUnit;
+  double realizedPnL;
   int? lastPriceUpdateMs;
   final int createdAtMs;
   final String note;
@@ -22,6 +23,7 @@ class AssetModel extends HiveObject {
     required this.unit,
     required this.totalCost,
     required this.currentValuePerUnit,
+    this.realizedPnL = 0,
     this.lastPriceUpdateMs,
     required this.createdAtMs,
     this.note = '',
@@ -53,13 +55,14 @@ class AssetModelAdapter extends TypeAdapter<AssetModel> {
       lastPriceUpdateMs: fields[8] as int?,
       createdAtMs: fields[9] as int,
       note: fields[10] as String,
+      realizedPnL: fields[11] as double? ?? 0.0,
     );
   }
 
   @override
   void write(BinaryWriter writer, AssetModel obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -81,6 +84,8 @@ class AssetModelAdapter extends TypeAdapter<AssetModel> {
       ..writeByte(9)
       ..write(obj.createdAtMs)
       ..writeByte(10)
-      ..write(obj.note);
+      ..write(obj.note)
+      ..writeByte(11)
+      ..write(obj.realizedPnL);
   }
 }

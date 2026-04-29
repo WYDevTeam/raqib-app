@@ -1,81 +1,160 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
+import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../domain/entities/asset_entity.dart';
+import '../domain/entities/asset_transaction_entity.dart';
+import 'cubit/investments_cubit.dart';
+import 'cubit/investments_state.dart';
 import 'widgets/add_asset_transaction_sheet.dart';
 
-class AssetDetailsScreen extends StatefulWidget {
-  final String assetName;
+class AssetDetailsScreen extends StatelessWidget {
+  final String assetId;
 
-  const AssetDetailsScreen({
-    super.key,
-    required this.assetName,
-  });
+  const AssetDetailsScreen({super.key, required this.assetId});
 
   @override
-  State<AssetDetailsScreen> createState() => _AssetDetailsScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => sl<InvestmentsCubit>()..loadInvestments(),
+      child: _AssetDetailsView(assetId: assetId),
+    );
+  }
 }
 
-class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
-  final TextEditingController _currentPriceController = TextEditingController(text: '100.00'); // Mock initial price
+class _AssetDetailsView extends StatelessWidget {
+  final String assetId;
+  const _AssetDetailsView({required this.assetId});
 
-  @override
-  void dispose() {
-    _currentPriceController.dispose();
-    super.dispose();
-  }
-
-  void _showAddTransaction() {
+  void _showAddTransaction(BuildContext context, AssetEntity asset) {
+    final cubit = context.read<InvestmentsCubit>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddAssetTransactionSheet(assetName: widget.assetName),
+      builder: (sheetCtx) => BlocProvider.value(
+        value: cubit,
+        child: AddAssetTransactionSheet(asset: asset),
+      ),
     );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, AssetEntity asset) async {
+    final cubit = context.read<InvestmentsCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الأصل'),
+        content: Text('هل تريد حذف "${asset.name}" وجميع عملياته؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف',
+                style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await cubit.deleteAsset(asset.id);
+      if (context.mounted) Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.assetName),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildOverviewCard(context),
-            const SizedBox(height: 16),
-            _buildValuationCard(context),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return BlocBuilder<InvestmentsCubit, InvestmentsState>(
+      builder: (context, state) {
+        if (state is InvestmentsLoading || state is InvestmentsInitial) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+        if (state is! InvestmentsLoaded) {
+          return const Scaffold(
+              body: Center(child: Text('حدث خطأ')));
+        }
+
+        final asset =
+            state.assets.where((a) => a.id == assetId).firstOrNull;
+        if (asset == null) {
+          return const Scaffold(
+              body: Center(child: Text('الأصل غير موجود')));
+        }
+
+        final txs = state.transactionsByAsset[assetId] ?? [];
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(asset.name),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+                onPressed: () => _confirmDelete(context, asset),
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'سجل العمليات',
-                  style: Theme.of(context).textTheme.titleLarge,
+                _buildOverviewCard(context, asset, txs),
+                const SizedBox(height: 16),
+                _buildValuationCard(context, asset),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('سجل العمليات',
+                        style: Theme.of(context).textTheme.titleLarge),
+                    ElevatedButton.icon(
+                      onPressed: () =>
+                          _showAddTransaction(context, asset),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('إضافة'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                      ),
+                    ),
+                  ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: _showAddTransaction,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('إضافة'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size.zero,
-                  ),
-                ),
+                const SizedBox(height: 16),
+                if (txs.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('لا توجد عمليات بعد',
+                          style:
+                              TextStyle(color: AppTheme.textSecondary)),
+                    ),
+                  )
+                else
+                  ...txs.map((tx) =>
+                      _buildTransactionTile(context, tx, asset.unit)),
+                const SizedBox(height: 40),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildTransactionLogTile(context, 'شراء - 10 غرام', '-\$700.00', 'اليوم', true),
-            _buildTransactionLogTile(context, 'شراء - 5 غرام', '-\$340.00', 'أمس', true),
-            _buildTransactionLogTile(context, 'بيع - 2 غرام', '+\$150.00', '15/04/2026', false),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildOverviewCard(BuildContext context) {
+  Widget _buildOverviewCard(BuildContext context, AssetEntity asset,
+      List<AssetTransactionEntity> txs) {
+    final totalBought =
+        txs.where((t) => t.isBuy).fold(0.0, (s, t) => s + t.quantity);
+    final totalSold =
+        txs.where((t) => !t.isBuy).fold(0.0, (s, t) => s + t.quantity);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -88,9 +167,11 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem(context, 'شراء (Bought)', '15.00g'),
-              _buildStatItem(context, 'بيع (Sold)', '2.00g'),
-              _buildStatItem(context, 'متبقي (Held)', '13.00g', isHighlight: true),
+              _statItem(context, 'المشتري', '${_fmtQty(totalBought)} ${asset.unit}'),
+              _statItem(context, 'المباع', '${_fmtQty(totalSold)} ${asset.unit}'),
+              _statItem(context, 'المتبقي',
+                  '${_fmtQty(asset.quantity)} ${asset.unit}',
+                  highlight: true),
             ],
           ),
           const SizedBox(height: 16),
@@ -99,8 +180,23 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('صافي المستثمر (Net Invested)', style: Theme.of(context).textTheme.bodyMedium),
-              Text('\$890.00', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text('صافي التكلفة الحالية',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              Text(_fmt(asset.totalCost),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('متوسط تكلفة الوحدة',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              Text(_fmt(asset.avgCostPerUnit),
+                  style: Theme.of(context).textTheme.titleSmall),
             ],
           ),
         ],
@@ -108,23 +204,11 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, {bool isHighlight = false}) {
-    return Column(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: isHighlight ? AppTheme.primary : AppTheme.textPrimary,
-            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _buildValuationCard(BuildContext context, AssetEntity asset) {
+    final unrealized = asset.unrealizedPnL;
+    final realized = asset.realizedPnL;
+    final total = asset.totalPnL;
 
-  Widget _buildValuationCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -135,25 +219,36 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('السعر الحالي للوحدة', style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _currentPriceController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              prefixText: '\$ ',
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('القيمة الحالية (Current Value)', style: Theme.of(context).textTheme.bodyMedium),
-              Text('\$1,300.00', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.secondary, fontWeight: FontWeight.bold)),
+              Text('سعر الوحدة الحالي',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              Text(_fmt(asset.currentValuePerUnit),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('القيمة الحالية',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                _fmt(asset.currentTotalValue),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(
+                        color: AppTheme.secondary,
+                        fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -165,19 +260,40 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      Text('ربح محقق (Realized)', style: Theme.of(context).textTheme.bodySmall),
+                      Text('ربح محقق',
+                          style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 4),
-                      Text('+\$50.00', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.secondary)),
+                      Text(
+                        '${realized >= 0 ? '+' : ''}${_fmt(realized)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                                color: realized >= 0
+                                    ? AppTheme.secondary
+                                    : AppTheme.error),
+                      ),
                     ],
                   ),
                 ),
-                Container(width: 1, height: 30, color: const Color(0xFFEFEFEF)),
+                Container(
+                    width: 1, height: 30, color: const Color(0xFFEFEFEF)),
                 Expanded(
                   child: Column(
                     children: [
-                      Text('ربح غير محقق (Unrealized)', style: Theme.of(context).textTheme.bodySmall),
+                      Text('ربح غير محقق',
+                          style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: 4),
-                      Text('+\$360.00', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.secondary)),
+                      Text(
+                        '${unrealized >= 0 ? '+' : ''}${_fmt(unrealized)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                                color: unrealized >= 0
+                                    ? AppTheme.secondary
+                                    : AppTheme.error),
+                      ),
                     ],
                   ),
                 ),
@@ -192,8 +308,14 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
                 children: [
                   const TextSpan(text: 'إجمالي الربح: '),
                   TextSpan(
-                    text: '+\$410.00 (+46.0%)',
-                    style: const TextStyle(color: AppTheme.secondary, fontWeight: FontWeight.bold),
+                    text:
+                        '${total >= 0 ? '+' : ''}${_fmt(total)} (${asset.unrealizedPnLPercent.toStringAsFixed(1)}%)',
+                    style: TextStyle(
+                      color: total >= 0
+                          ? AppTheme.secondary
+                          : AppTheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -204,7 +326,8 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
     );
   }
 
-  Widget _buildTransactionLogTile(BuildContext context, String type, String amount, String date, bool isBuy) {
+  Widget _buildTransactionTile(
+      BuildContext context, AssetTransactionEntity tx, String unit) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -218,12 +341,14 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isBuy ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.secondary.withValues(alpha: 0.1),
+              color: tx.isBuy
+                  ? AppTheme.primary.withValues(alpha: 0.1)
+                  : AppTheme.secondary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isBuy ? Icons.add_shopping_cart : Icons.sell,
-              color: isBuy ? AppTheme.primary : AppTheme.secondary,
+              tx.isBuy ? Icons.add_shopping_cart : Icons.sell,
+              color: tx.isBuy ? AppTheme.primary : AppTheme.secondary,
               size: 20,
             ),
           ),
@@ -233,32 +358,61 @@ class _AssetDetailsScreenState extends State<AssetDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  type,
+                  '${tx.isBuy ? 'شراء' : 'بيع'} ${_fmtQty(tx.quantity)} $unit',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 Text(
-                  date,
+                  '${_fmt(tx.pricePerUnit)}/وحدة • ${DateFormat('dd/MM/yyyy').format(tx.date)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
           ),
           Text(
-            amount,
+            _fmt(tx.totalAmount),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isBuy ? AppTheme.textPrimary : AppTheme.secondary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: tx.isBuy
+                      ? AppTheme.textPrimary
+                      : AppTheme.secondary,
+                ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppTheme.error, size: 20),
-            onPressed: () {
-              // Delete transaction logic
-            },
+            icon: const Icon(Icons.delete_outline,
+                color: AppTheme.error, size: 20),
+            onPressed: () =>
+                context.read<InvestmentsCubit>().deleteTransaction(tx.id),
           ),
         ],
       ),
     );
   }
+
+  Widget _statItem(BuildContext context, String label, String value,
+      {bool highlight = false}) {
+    return Column(
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color:
+                    highlight ? AppTheme.primary : AppTheme.textPrimary,
+                fontWeight:
+                    highlight ? FontWeight.bold : FontWeight.normal,
+              ),
+        ),
+      ],
+    );
+  }
 }
+
+
+String _fmt(double v) {
+  final abs = NumberFormat('#,##0.##').format(v.abs());
+  return '${v < 0 ? '-' : ''}\$$abs';
+}
+
+String _fmtQty(double v) => NumberFormat('#,##0.##').format(v);

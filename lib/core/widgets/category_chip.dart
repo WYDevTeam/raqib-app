@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CategoryChip extends StatelessWidget {
-  final String emoji;
+  final int iconCodePoint;
   final String label;
   final Color color;
   final bool isSelected;
@@ -9,7 +9,7 @@ class CategoryChip extends StatelessWidget {
 
   const CategoryChip({
     super.key,
-    required this.emoji,
+    required this.iconCodePoint,
     required this.label,
     required this.color,
     this.isSelected = false,
@@ -34,7 +34,11 @@ class CategoryChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
+            Icon(
+              IconData(iconCodePoint, fontFamily: 'MaterialIcons'),
+              size: 16,
+              color: isSelected ? color : color.withValues(alpha: 0.8),
+            ),
             const SizedBox(width: 6),
             Text(
               label,

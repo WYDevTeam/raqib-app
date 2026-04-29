@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
@@ -28,55 +29,55 @@ class CategoryHiveDatasource {
       CategoryModel(
           id: uuid.v4(),
           name: 'طعام وشراب',
-          emoji: '🍕',
+          iconCodePoint: Icons.restaurant.codePoint,
           colorValue: 0xFFFF6B6B,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'مواصلات',
-          emoji: '🚗',
+          iconCodePoint: Icons.directions_car.codePoint,
           colorValue: 0xFF4ECDC4,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'سكن',
-          emoji: '🏠',
+          iconCodePoint: Icons.home.codePoint,
           colorValue: 0xFF45B7D1,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'دخل أساسي',
-          emoji: '💰',
+          iconCodePoint: Icons.account_balance_wallet.codePoint,
           colorValue: 0xFF10C469,
           typeValue: 0),
       CategoryModel(
           id: uuid.v4(),
           name: 'ترفيه',
-          emoji: '🎮',
+          iconCodePoint: Icons.sports_esports.codePoint,
           colorValue: 0xFFF9C74F,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'صحة',
-          emoji: '💊',
+          iconCodePoint: Icons.local_hospital.codePoint,
           colorValue: 0xFFFF9A9A,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'تعليم',
-          emoji: '📚',
+          iconCodePoint: Icons.school.codePoint,
           colorValue: 0xFF7EC8E3,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'تسوق',
-          emoji: '🛍️',
+          iconCodePoint: Icons.shopping_bag.codePoint,
           colorValue: 0xFFBB86FC,
           typeValue: 1),
       CategoryModel(
           id: uuid.v4(),
           name: 'راتب',
-          emoji: '💳',
+          iconCodePoint: Icons.payments.codePoint,
           colorValue: 0xFF2E6FF2,
           typeValue: 0),
     ];

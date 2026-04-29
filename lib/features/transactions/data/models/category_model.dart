@@ -5,14 +5,14 @@ import '../../domain/entities/category_entity.dart';
 class CategoryModel extends HiveObject {
   final String id;
   final String name;
-  final String emoji;
+  final int iconCodePoint;
   final int colorValue;
   final int typeValue;
 
   CategoryModel({
     required this.id,
     required this.name,
-    required this.emoji,
+    required this.iconCodePoint,
     required this.colorValue,
     required this.typeValue,
   });
@@ -20,7 +20,7 @@ class CategoryModel extends HiveObject {
   CategoryEntity toEntity() => CategoryEntity(
         id: id,
         name: name,
-        emoji: emoji,
+        iconCodePoint: iconCodePoint,
         colorValue: colorValue,
         type: CategoryType.fromInt(typeValue),
       );
@@ -28,7 +28,7 @@ class CategoryModel extends HiveObject {
   static CategoryModel fromEntity(CategoryEntity e) => CategoryModel(
         id: e.id,
         name: e.name,
-        emoji: e.emoji,
+        iconCodePoint: e.iconCodePoint,
         colorValue: e.colorValue,
         typeValue: e.type.hiveValue,
       );
@@ -47,7 +47,7 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
     return CategoryModel(
       id: fields[0] as String,
       name: fields[1] as String,
-      emoji: fields[2] as String,
+      iconCodePoint: fields[2] as int,
       colorValue: fields[3] as int,
       typeValue: fields[4] as int,
     );
@@ -62,7 +62,7 @@ class CategoryModelAdapter extends TypeAdapter<CategoryModel> {
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.emoji)
+      ..write(obj.iconCodePoint)
       ..writeByte(3)
       ..write(obj.colorValue)
       ..writeByte(4)

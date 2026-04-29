@@ -127,8 +127,12 @@ class _CategoryTile extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: Text(category.emoji,
-                    style: const TextStyle(fontSize: 20)),
+                child: Icon(
+                  IconData(category.iconCodePoint,
+                      fontFamily: 'MaterialIcons'),
+                  size: 20,
+                  color: color,
+                ),
               ),
             ),
             const SizedBox(width: 14),

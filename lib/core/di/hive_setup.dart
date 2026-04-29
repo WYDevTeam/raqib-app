@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../features/budget/data/models/budget_model.dart';
@@ -35,6 +36,9 @@ abstract final class HiveSetup {
 
   static Future<void> _openBoxes() async {
     await Hive.openBox<TransactionModel>('transactions');
+    // Migration: categories schema changed from emoji:String → iconCodePoint:int.
+    // Delete stale box so it re-seeds with icon codepoints.
+    await Hive.deleteBoxFromDisk('categories');
     await Hive.openBox<CategoryModel>('categories');
     await Hive.openBox<RecurringRuleModel>('recurring_rules');
     await Hive.openBox<AssetModel>('assets');
@@ -57,9 +61,9 @@ abstract final class HiveSetup {
         CategoryModel(
           id: 'opening_balance',
           name: 'رصيد افتتاحي',
-          emoji: '🏦',
+          iconCodePoint: Icons.account_balance.codePoint,
           colorValue: 0xFF2E6FF2,
-          typeValue: 0, // income
+          typeValue: 0,
         ),
       );
     }

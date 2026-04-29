@@ -100,6 +100,8 @@ class CalculationsService {
     return getNetWorthConservative() + getTotalDebtsOwed();
   }
 
+  List<AssetModel> getAllAssets() => _assetBox.values.toList();
+
   // ── Monthly P&L ────────────────────────────────────────────────────────────
 
   ({double income, double expenses}) getMonthlyPnL(DateTime month) {

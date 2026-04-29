@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../core/services/calculations_service.dart';
 import '../../../../core/utils/either.dart';
 import '../../domain/entities/dashboard_summary.dart';
@@ -12,16 +13,22 @@ import '../models/dashboard_widget_model.dart';
 class DashboardRepositoryImpl implements DashboardRepository {
   final CalculationsService _calc;
   final Box<DashboardWidgetModel> _widgetsBox;
+  final ApiService _apiService;
 
-  const DashboardRepositoryImpl({
+  DashboardRepositoryImpl({
     required CalculationsService calc,
     required Box<DashboardWidgetModel> widgetsBox,
+    required ApiService apiService,
   })  : _calc = calc,
-        _widgetsBox = widgetsBox;
+        _widgetsBox = widgetsBox,
+        _apiService = apiService;
 
   @override
   Future<Either<AppFailure, DashboardSummary>> getDashboardSummary() async {
     try {
+      // Refresh prices from API (respects 1-hour cache — won't over-fetch)
+      await _apiService.refreshAssetPrices(_calc.getAllAssets());
+
       final now = DateTime.now();
       final pnl = _calc.getMonthlyPnL(now);
       final assets = _calc.getAssetsByType();

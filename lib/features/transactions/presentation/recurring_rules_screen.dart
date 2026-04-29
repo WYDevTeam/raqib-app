@@ -341,9 +341,13 @@ class _RuleCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: Text(
-                      cat?.emoji ?? '📋',
-                      style: const TextStyle(fontSize: 20),
+                    child: Icon(
+                      IconData(
+                        cat?.iconCodePoint ?? Icons.category.codePoint,
+                        fontFamily: 'MaterialIcons',
+                      ),
+                      size: 20,
+                      color: accentColor,
                     ),
                   ),
                 ),

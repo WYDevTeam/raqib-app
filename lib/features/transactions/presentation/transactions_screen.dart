@@ -381,8 +381,14 @@ class _CategoryIcon extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Center(
-        child: Text(category?.emoji ?? '📦',
-            style: const TextStyle(fontSize: 20)),
+        child: Icon(
+          IconData(
+            category?.iconCodePoint ?? Icons.category.codePoint,
+            fontFamily: 'MaterialIcons',
+          ),
+          size: 20,
+          color: color,
+        ),
       ),
     );
   }
@@ -466,9 +472,13 @@ class _RecurringRulesTab extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: Text(
-                    cat?.emoji ?? '📋',
-                    style: const TextStyle(fontSize: 20),
+                  child: Icon(
+                    IconData(
+                      cat?.iconCodePoint ?? Icons.category.codePoint,
+                      fontFamily: 'MaterialIcons',
+                    ),
+                    size: 20,
+                    color: accentColor,
                   ),
                 ),
               ),

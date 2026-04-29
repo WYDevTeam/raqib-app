@@ -44,7 +44,17 @@ import '../../features/transactions/domain/usecases/update_transaction_usecase.d
 import '../../features/transactions/presentation/cubit/category_cubit.dart';
 import '../../features/transactions/presentation/cubit/recurring_cubit.dart';
 import '../../features/transactions/presentation/cubit/transactions_cubit.dart';
+import '../services/api_service.dart';
 import '../services/calculations_service.dart';
+import '../../features/investments/data/repositories/investments_repository_impl.dart';
+import '../../features/investments/domain/repositories/investments_repository.dart';
+import '../../features/investments/domain/usecases/add_asset_transaction_usecase.dart';
+import '../../features/investments/domain/usecases/add_asset_usecase.dart';
+import '../../features/investments/domain/usecases/delete_asset_transaction_usecase.dart';
+import '../../features/investments/domain/usecases/delete_asset_usecase.dart';
+import '../../features/investments/domain/usecases/get_asset_transactions_usecase.dart';
+import '../../features/investments/domain/usecases/get_assets_usecase.dart';
+import '../../features/investments/presentation/cubit/investments_cubit.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -61,6 +71,7 @@ Future<void> setupDI() async {
   final widgetsBox = Hive.box<DashboardWidgetModel>('dashboard_widgets');
 
   // ── Core services ──────────────────────────────────────────────────────────
+  sl.registerLazySingleton(() => ApiService());
   sl.registerLazySingleton(
     () => CalculationsService(
       txBox: transactionBox,
@@ -90,7 +101,11 @@ Future<void> setupDI() async {
     () => RecurringRuleRepositoryImpl(sl()),
   );
   sl.registerLazySingleton<DashboardRepository>(
-    () => DashboardRepositoryImpl(calc: sl(), widgetsBox: widgetsBox),
+    () => DashboardRepositoryImpl(
+      calc: sl(),
+      widgetsBox: widgetsBox,
+      apiService: sl(),
+    ),
   );
 
   // ── Use cases — Transactions ───────────────────────────────────────────────
@@ -114,6 +129,17 @@ Future<void> setupDI() async {
         addTransaction: sl(),
         updateRule: sl(),
       ));
+
+  // ── Investments ────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<InvestmentsRepository>(
+    () => InvestmentsRepositoryImpl(assetBox: assetBox, txBox: assetTxBox),
+  );
+  sl.registerLazySingleton(() => GetAssetsUseCase(sl()));
+  sl.registerLazySingleton(() => AddAssetUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAssetUseCase(sl()));
+  sl.registerLazySingleton(() => GetAssetTransactionsUseCase(sl()));
+  sl.registerLazySingleton(() => AddAssetTransactionUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAssetTransactionUseCase(sl()));
 
   // ── Use cases — Dashboard ──────────────────────────────────────────────────
   sl.registerLazySingleton(() => GetDashboardSummaryUseCase(sl()));
@@ -139,6 +165,9 @@ Future<void> setupDI() async {
   );
   sl.registerFactory(
     () => DashboardCubit(sl(), sl(), sl()),
+  );
+  sl.registerFactory(
+    () => InvestmentsCubit(sl(), sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerFactory(
     () => OnboardingCubit(

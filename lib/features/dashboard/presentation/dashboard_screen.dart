@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
-import '../domain/entities/dashboard_widget_entity.dart';
 import 'cubit/dashboard_cubit.dart';
 import 'cubit/dashboard_state.dart';
+import 'widgets/edit_overview_sheet.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -21,98 +21,106 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _DashboardView extends StatelessWidget {
+class _DashboardView extends StatefulWidget {
   const _DashboardView();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('راقب'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_outlined),
-            onPressed: () {
-              final cubit = context.read<DashboardCubit>();
-              final s = cubit.state;
-              final widgets =
-                  s is DashboardLoaded ? s.widgets : <DashboardWidget>[];
-              context
-                  .push('/dashboard/customize', extra: widgets)
-                  .then((_) => cubit.loadDashboard());
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.go('/dashboard/settings'),
-          ),
-        ],
-      ),
-      body: BlocBuilder<DashboardCubit, DashboardState>(
-        builder: (context, state) => switch (state) {
-          DashboardInitial() ||
-          DashboardLoading() =>
-            const Center(child: CircularProgressIndicator()),
-          DashboardError(:final message) => _ErrorView(
-              message: message,
-              onRetry: () => context.read<DashboardCubit>().loadDashboard(),
-            ),
-          DashboardLoaded() => _LoadedView(state: state),
-        },
-      ),
-    );
-  }
+  State<_DashboardView> createState() => _DashboardViewState();
 }
 
-// ── Loaded ────────────────────────────────────────────────────────────────────
+class _DashboardViewState extends State<_DashboardView> {
+  void _showFormulaBuilder() {
+    context.push('/dashboard/formula-builder');
+  }
 
-class _LoadedView extends StatelessWidget {
-  final DashboardLoaded state;
-  const _LoadedView({required this.state});
+  Future<void> _onRefresh() async {
+    await context.read<DashboardCubit>().refresh();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final visible = state.visibleWidgets;
-    final idSet = {for (final w in visible) w.id};
+    return BlocBuilder<DashboardCubit, DashboardState>(
+      builder: (context, state) {
+        final loaded = state is DashboardLoaded ? state : null;
+        final summary = loaded?.summary;
 
-    return RefreshIndicator(
-      onRefresh: () => context.read<DashboardCubit>().refresh(),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-        children: [
-          if (idSet.contains('net_worth')) ...[
-            _NetWorthCard(state: state),
-            const SizedBox(height: 16),
-          ],
-          if (idSet.contains('pnl')) ...[
-            _PnLCard(state: state),
-            const SizedBox(height: 16),
-          ],
-          if (idSet.contains('assets')) ...[
-            _AssetsCard(state: state),
-            const SizedBox(height: 16),
-          ],
-          if (idSet.contains('reminders') &&
-              state.summary.reminders.isNotEmpty) ...[
-            _RemindersCard(state: state),
-            const SizedBox(height: 16),
-          ],
-        ],
-      ),
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('راقب'),
+            actions: [
+              TextButton.icon(
+                onPressed: () => context.push('/subscription'),
+                icon: const Icon(Icons.workspace_premium,
+                    color: Color(0xFFFFD700)),
+                label: const Text(
+                  'Pro',
+                  style: TextStyle(
+                    color: Color(0xFFFFD700),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor:
+                      const Color(0xFFFFD700).withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => context.go('/dashboard/settings'),
+              ),
+            ],
+          ),
+          body: state is DashboardLoading && loaded == null
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      _buildNetWorthCard(context, loaded),
+                      const SizedBox(height: 24),
+                      _buildOverviewSection(context, loaded),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'بطاقات مخصصة',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.add),
+                            label: const Text('إضافة معادلة'),
+                            onPressed: _showFormulaBuilder,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (summary != null)
+                        _buildCustomFormulaCard(
+                          context,
+                          'الفائض بعد احتياط 10%',
+                          _fmt(summary.realPnLThisMonth * 0.9),
+                          'الدخل الفعلي - (المصاريف الفعلية * 1.1)',
+                        ),
+                    ],
+                  ),
+                ),
+        );
+      },
     );
   }
-}
 
-// ── Net Worth Card ────────────────────────────────────────────────────────────
-
-class _NetWorthCard extends StatelessWidget {
-  final DashboardLoaded state;
-  const _NetWorthCard({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final nw = state.displayedNetWorth;
-    final isPositive = nw >= 0;
+  Widget _buildNetWorthCard(
+      BuildContext context, DashboardLoaded? state) {
+    final nw = state?.displayedNetWorth ?? 0;
+    final isConservative = state?.isConservativeMode ?? true;
+    final debtHeld = state?.summary.totalDebtsOwed ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -123,360 +131,330 @@ class _NetWorthCard extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'صافي الثروة',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(color: Colors.white70),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'صافي الثروة الحقيقي',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isConservative ? 'متحفظ' : 'كلي',
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    Switch(
+                      value: isConservative,
+                      onChanged: (_) => context
+                          .read<DashboardCubit>()
+                          .toggleConservativeMode(),
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: AppTheme.secondary,
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor:
+                          Colors.white.withValues(alpha: 0.3),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            _fmt(nw),
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _ModeChip(
-                label: 'متحفظ',
-                active: state.isConservativeMode,
-                onTap: () {
-                  if (!state.isConservativeMode) {
-                    context.read<DashboardCubit>().toggleConservativeMode();
-                  }
-                },
-              ),
-              const SizedBox(width: 8),
-              _ModeChip(
-                label: 'إجمالي',
-                active: !state.isConservativeMode,
-                onTap: () {
-                  if (state.isConservativeMode) {
-                    context.read<DashboardCubit>().toggleConservativeMode();
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
-                color: Colors.white70,
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  state.isConservativeMode
-                      ? 'لا يشمل الديون التي لك (${_fmt(state.summary.totalDebtsOwed)})'
-                      : 'يشمل الديون التي لك (${_fmt(state.summary.totalDebtsOwed)})',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeChip extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  const _ModeChip(
-      {required this.label, required this.active, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? AppTheme.primary : Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── P&L Card ──────────────────────────────────────────────────────────────────
-
-class _PnLCard extends StatelessWidget {
-  final DashboardLoaded state;
-  const _PnLCard({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final s = state.summary;
-    final pnl = s.realPnLThisMonth;
-    final isPositive = pnl >= 0;
-    final color = isPositive ? AppTheme.secondary : AppTheme.error;
-
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
-                color: color,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text('الربح والخسارة الحقيقية',
-                  style: Theme.of(context).textTheme.titleSmall),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${isPositive ? '+' : ''}${_fmt(pnl)}',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          Text('هذا الشهر',
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _PnLRow(
-                  label: 'دخل',
-                  value: s.monthlyIncome,
-                  color: AppTheme.secondary),
-              _PnLRow(
-                  label: 'مصروف',
-                  value: s.monthlyExpenses,
-                  color: AppTheme.error),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PnLRow extends StatelessWidget {
-  final String label;
-  final double value;
-  final Color color;
-  const _PnLRow(
-      {required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text(_fmt(value),
+            state == null ? '---' : _fmt(nw),
             style: Theme.of(context)
                 .textTheme
-                .titleMedium
-                ?.copyWith(color: color, fontWeight: FontWeight.bold)),
+                .displayMedium
+                ?.copyWith(color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isConservative
+                      ? 'لا يتضمن الديون التي لك (${_fmt(debtHeld)})'
+                      : 'يتضمن كافة الديون التي لك',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewSection(
+      BuildContext context, DashboardLoaded? state) {
+    final summary = state?.summary;
+    final widgets = state?.visibleWidgets ?? [];
+    final idSet = {for (final w in widgets) w.id};
+
+    final Map<String, Widget Function(BuildContext)> widgetMap = {
+      'الكاش الفعلي': (ctx) => _buildSummaryCard(
+            ctx,
+            'الكاش الفعلي',
+            summary == null ? '---' : _fmt(summary.liquidCash),
+            Icons.attach_money,
+            AppTheme.primary,
+          ),
+      'الربح الحقيقي (P&L)': (ctx) => _buildSummaryCard(
+            ctx,
+            'الربح الحقيقي (P&L)',
+            summary == null
+                ? '---'
+                : '${summary.realPnLThisMonth >= 0 ? '+' : ''}${_fmt(summary.realPnLThisMonth)}',
+            Icons.trending_up,
+            summary != null && summary.realPnLThisMonth >= 0
+                ? AppTheme.secondary
+                : AppTheme.error,
+          ),
+      'إجمالي المعادن': (ctx) => _buildSummaryCard(
+            ctx,
+            'إجمالي المعادن',
+            summary == null
+                ? '---'
+                : _fmt(summary.goldValue + summary.silverValue),
+            Icons.diamond,
+            Colors.amber,
+          ),
+      'أمانات عندي': (ctx) => _buildSummaryCard(
+            ctx,
+            'أمانات عندي',
+            summary == null ? '---' : _fmt(summary.totalAmanah),
+            Icons.lock_outline,
+            AppTheme.error,
+          ),
+      'الديون المستحقة': (ctx) => _buildSummaryCard(
+            ctx,
+            'الديون المستحقة',
+            summary == null ? '---' : _fmt(summary.totalDebtsOwed),
+            Icons.money_off,
+            AppTheme.warning,
+          ),
+      'ميزانية التسوق': (ctx) => _buildSummaryCard(
+            ctx,
+            'ميزانية التسوق',
+            '---',
+            Icons.shopping_bag_outlined,
+            Colors.purple,
+          ),
+    };
+
+    // Map dashboard widget IDs to overview item keys
+    final overviewItems = <String, bool>{
+      'الكاش الفعلي': true,
+      'الربح الحقيقي (P&L)': idSet.contains('pnl'),
+      'إجمالي المعادن': idSet.contains('assets'),
+      'أمانات عندي': idSet.contains('reminders'),
+      'الديون المستحقة': false,
+      'ميزانية التسوق': false,
+    };
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('نظرة عامة',
+                style: Theme.of(context).textTheme.titleLarge),
+            IconButton(
+              icon: const Icon(Icons.edit_note,
+                  color: AppTheme.primary),
+              onPressed: () async {
+                final cubit = context.read<DashboardCubit>();
+                final result =
+                    await showModalBottomSheet<Map<String, bool>>(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => EditOverviewSheet(
+                      initialItems: overviewItems),
+                );
+                if (result != null) {
+                  // Map result back to DashboardWidget list
+                  final current = cubit.state;
+                  if (current is! DashboardLoaded) return;
+                  final updated = current.widgets.map((w) {
+                    return switch (w.id) {
+                      'pnl' => w.copyWith(
+                          isVisible:
+                              result['الربح الحقيقي (P&L)'] ?? true),
+                      'assets' => w.copyWith(
+                          isVisible:
+                              result['إجمالي المعادن'] ?? true),
+                      'reminders' => w.copyWith(
+                          isVisible: result['أمانات عندي'] ?? true),
+                      _ => w,
+                    };
+                  }).toList();
+                  await cubit.saveWidgets(updated);
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildDynamicOverviewGrid(context, overviewItems, widgetMap),
       ],
     );
   }
-}
 
-// ── Assets Card ───────────────────────────────────────────────────────────────
+  Widget _buildDynamicOverviewGrid(
+    BuildContext context,
+    Map<String, bool> overviewItems,
+    Map<String, Widget Function(BuildContext)> widgetMap,
+  ) {
+    final active = overviewItems.entries
+        .where((e) => e.value)
+        .map((e) => widgetMap[e.key]!(context))
+        .toList();
 
-class _AssetsCard extends StatelessWidget {
-  final DashboardLoaded state;
-  const _AssetsCard({required this.state});
+    if (active.isEmpty) {
+      return const Center(
+        child: Text(
+          'لم يتم اختيار أي بطاقة للظهور',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final s = state.summary;
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final rows = <Widget>[];
+    for (int i = 0; i < active.length; i += 2) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
             children: [
-              Text('أصولي', style: Theme.of(context).textTheme.titleSmall),
-              Text(_fmt(s.totalAssetsValue),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
+              Expanded(child: active[i]),
+              const SizedBox(width: 16),
+              i + 1 < active.length
+                  ? Expanded(child: active[i + 1])
+                  : const Spacer(),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          _AssetRow(emoji: '💵', label: 'كاش', value: s.liquidCash),
-          if (s.goldValue > 0)
-            _AssetRow(emoji: '🟡', label: 'ذهب', value: s.goldValue),
-          if (s.silverValue > 0)
-            _AssetRow(emoji: '⚪', label: 'فضة', value: s.silverValue),
-          if (s.cryptoValue > 0)
-            _AssetRow(emoji: '₿', label: 'كريبتو', value: s.cryptoValue),
-          if (s.otherAssetsValue > 0)
-            _AssetRow(emoji: '📦', label: 'أخرى', value: s.otherAssetsValue),
-        ],
-      ),
-    );
+        ),
+      );
+    }
+    return Column(children: rows);
   }
-}
 
-class _AssetRow extends StatelessWidget {
-  final String emoji;
-  final String label;
-  final double value;
-  const _AssetRow(
-      {required this.emoji, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 8),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ]),
-          Text(_fmt(value),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600)),
-        ],
+  Widget _buildSummaryCard(
+    BuildContext context,
+    String title,
+    String amount,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEFEFEF)),
       ),
-    );
-  }
-}
-
-// ── Reminders Card ────────────────────────────────────────────────────────────
-
-class _RemindersCard extends StatelessWidget {
-  final DashboardLoaded state;
-  const _RemindersCard({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(children: [
-            const Icon(Icons.notifications_outlined,
-                size: 18, color: AppTheme.warning),
-            const SizedBox(width: 8),
-            Text('تذكيرات', style: Theme.of(context).textTheme.titleSmall),
-          ]),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 12),
-          for (final r in state.summary.reminders)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: [
-                    Text(r.isDebt ? '💸' : '🤝',
-                        style: const TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Text(
-                      r.isDebt
-                          ? '${r.personName} مدين لك'
-                          : 'أمانة عند ${r.personName}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ]),
-                  Text(_fmt(r.amount),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
+          Text(
+            amount,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(title, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
   }
-}
 
-// ── Shared card container ─────────────────────────────────────────────────────
-
-class _Card extends StatelessWidget {
-  final Widget child;
-  const _Card({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCustomFormulaCard(
+    BuildContext context,
+    String title,
+    String amount,
+    String formula,
+  ) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEFEFEF)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: AppTheme.primary.withValues(alpha: 0.3)),
       ),
-      child: child,
-    );
-  }
-}
-
-// ── Error view ────────────────────────────────────────────────────────────────
-
-class _ErrorView extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-  const _ErrorView({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
-          const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: onRetry, child: const Text('إعادة المحاولة')),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style:
+                        Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  formula,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            amount,
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(color: AppTheme.primary),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 String _fmt(double v) {
-  final formatted = NumberFormat('#,##0.##').format(v.abs());
-  return '${v < 0 ? '-' : ''}\$$formatted';
+  final abs = NumberFormat('#,##0.##').format(v.abs());
+  return '${v < 0 ? '-' : ''}\$$abs';
 }

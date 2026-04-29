@@ -13,14 +13,34 @@ class DebtsAmanahScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('الديون والأمانات'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'ديون أعطيتها (ملكك)'),
-              Tab(text: 'أمانات عندي (ليس لك)'),
-            ],
-            labelColor: AppTheme.primary,
-            unselectedLabelColor: AppTheme.textDisabled,
-            indicatorColor: AppTheme.primary,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(56),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDE3EE)),
+                ),
+                child: const TabBar(
+                  indicator: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  dividerColor: Colors.transparent,
+                  labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  tabs: [
+                    Tab(text: 'ديون أعطيتها (ملكك)'),
+                    Tab(text: 'أمانات عندي (ليس لك)'),
+                  ],
+                ),
+              ),
+            ),
           ),
           actions: [
             IconButton(icon: const Icon(Icons.add), onPressed: () => context.push('/debts/add')),
