@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import 'widgets/edit_overview_sheet.dart';
 
-
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -39,11 +38,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.workspace_premium, color: Color(0xFFFFD700)),
             label: const Text(
               'Pro',
-              style: TextStyle(color: Color(0xFFFFD700), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Color(0xFFFFD700),
+                fontWeight: FontWeight.bold,
+              ),
             ),
             style: TextButton.styleFrom(
               backgroundColor: const Color(0xFFFFD700).withValues(alpha: 0.1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 12),
             ),
           ),
@@ -54,64 +58,102 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _buildNetWorthCard(context),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'نظرة عامة',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              IconButton(
-                icon: const Icon(Icons.edit_note, color: AppTheme.primary),
-                onPressed: () async {
-                  final result = await showModalBottomSheet<Map<String, bool>>(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => EditOverviewSheet(initialItems: _overviewItems),
-                  );
-                  if (result != null) {
-                    setState(() {
-                      _overviewItems = result;
-                    });
-                  }
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildDynamicOverviewGrid(context),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'بطاقات مخصصة',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              TextButton.icon(
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة معادلة'),
-                onPressed: _showFormulaBuilder,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildCustomFormulaCard(context, 'الفائض بعد احتياط 10%', '\$280', 'الدخل الفعلي - (المصاريف الفعلية * 1.1)'),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            _buildNetWorthCard(context),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'نظرة عامة',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_note, color: AppTheme.primary),
+                  onPressed: () async {
+                    final result =
+                        await showModalBottomSheet<Map<String, bool>>(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) =>
+                              EditOverviewSheet(initialItems: _overviewItems),
+                        );
+                    if (result != null) {
+                      setState(() {
+                        _overviewItems = result;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildDynamicOverviewGrid(context),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'بطاقات مخصصة',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة معادلة'),
+                  onPressed: _showFormulaBuilder,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildCustomFormulaCard(
+              context,
+              'الفائض بعد احتياط 10%',
+              '\$280',
+              'الدخل الفعلي - (المصاريف الفعلية * 1.1)',
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  Future<void> _onRefresh() async {
+    // Simulate refresh delay
+    await Future.delayed(const Duration(milliseconds: 500));
+    // In a real scenario, this would call a Cubit or use case to refresh data from the repository
+    // For now, we'll just trigger a setState to refresh the UI
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   Widget _buildDynamicOverviewGrid(BuildContext context) {
     final Map<String, Widget Function(BuildContext)> widgetMap = {
-      'الكاش الفعلي': (ctx) => _buildSummaryCard(ctx, 'الكاش الفعلي', '\$3,500', Icons.attach_money, AppTheme.primary),
-      'الربح الحقيقي (P&L)': (ctx) => _buildSummaryCard(ctx, 'الربح الحقيقي (P&L)', '+\$420', Icons.trending_up, AppTheme.secondary),
-      'إجمالي المعادن': (ctx) => _buildSummaryCard(ctx, 'إجمالي المعادن', '\$1,200', Icons.diamond, Colors.amber),
+      'الكاش الفعلي': (ctx) => _buildSummaryCard(
+        ctx,
+        'الكاش الفعلي',
+        '\$3,500',
+        Icons.attach_money,
+        AppTheme.primary,
+      ),
+      'الربح الحقيقي (P&L)': (ctx) => _buildSummaryCard(
+        ctx,
+        'الربح الحقيقي (P&L)',
+        '+\$420',
+        Icons.trending_up,
+        AppTheme.secondary,
+      ),
+      'إجمالي المعادن': (ctx) => _buildSummaryCard(
+        ctx,
+        'إجمالي المعادن',
+        '\$1,200',
+        Icons.diamond,
+        Colors.amber,
+      ),
       'أمانات عندي': (ctx) => _buildAmanatCard(ctx),
       'الديون المستحقة': (ctx) => _buildDebtsCard(ctx),
       'ميزانية التسوق': (ctx) => _buildBudgetCard(ctx),
@@ -154,7 +196,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     if (rows.isEmpty) {
-      return const Center(child: Text('لم يتم اختيار أي بطاقة للظهور', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'لم يتم اختيار أي بطاقة للظهور',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
 
     return Column(children: rows);
@@ -186,10 +233,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'صافي الثروة الحقيقي',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.8)),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -222,19 +274,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 8),
           Text(
             _isConservativeMode ? '\$12,450.00' : '\$13,200.00',
-            style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.white.withValues(alpha: 0.8), size: 16),
+              Icon(
+                Icons.info_outline,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 16,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _isConservativeMode 
-                    ? 'لا يتضمن الديون التي لك (\$750)'
-                    : 'يتضمن كافة الديون التي لك',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                  _isConservativeMode
+                      ? 'لا يتضمن الديون التي لك (\$750)'
+                      : 'يتضمن كافة الديون التي لك',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -244,7 +305,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSummaryCard(BuildContext context, String title, String amount, IconData icon, Color color) {
+  Widget _buildSummaryCard(
+    BuildContext context,
+    String title,
+    String amount,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -273,18 +340,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAmanatCard(BuildContext context) {
-    return _buildSummaryCard(context, 'أمانات عندي', '\$2,000.00', Icons.lock_outline, AppTheme.error);
+    return _buildSummaryCard(
+      context,
+      'أمانات عندي',
+      '\$2,000.00',
+      Icons.lock_outline,
+      AppTheme.error,
+    );
   }
 
   Widget _buildDebtsCard(BuildContext context) {
-    return _buildSummaryCard(context, 'الديون المستحقة', '\$1,500.00', Icons.money_off, AppTheme.warning);
+    return _buildSummaryCard(
+      context,
+      'الديون المستحقة',
+      '\$1,500.00',
+      Icons.money_off,
+      AppTheme.warning,
+    );
   }
 
   Widget _buildBudgetCard(BuildContext context) {
-    return _buildSummaryCard(context, 'ميزانية التسوق', '\$300.00', Icons.shopping_bag_outlined, Colors.purple);
+    return _buildSummaryCard(
+      context,
+      'ميزانية التسوق',
+      '\$300.00',
+      Icons.shopping_bag_outlined,
+      Colors.purple,
+    );
   }
 
-  Widget _buildCustomFormulaCard(BuildContext context, String title, String amount, String formula) {
+  Widget _buildCustomFormulaCard(
+    BuildContext context,
+    String title,
+    String amount,
+    String formula,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -299,21 +389,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
                   formula,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
                 ),
               ],
             ),
           ),
           Text(
             amount,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: AppTheme.primary),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: AppTheme.primary),
           ),
         ],
       ),

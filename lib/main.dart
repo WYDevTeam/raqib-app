@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/config/app_config.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
@@ -11,6 +12,7 @@ import 'features/transactions/presentation/cubit/recurring_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.load();
 
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionModelAdapter());
@@ -32,3 +34,4 @@ void main() async {
 
   runApp(const MainApp());
 }
+

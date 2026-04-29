@@ -55,9 +55,10 @@ class _TransactionsView extends StatelessWidget {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppTheme.background,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  color: AppTheme.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDE3EE)),
+                ),
                     child: const TabBar(
                       indicator: BoxDecoration(
                         color: AppTheme.primary,
