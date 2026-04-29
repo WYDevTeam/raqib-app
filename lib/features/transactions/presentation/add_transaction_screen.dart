@@ -82,11 +82,13 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
   }
 
   Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _isRecurring ? _selectedDate : (_selectedDate.isAfter(today) ? today : _selectedDate),
       firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      lastDate: _isRecurring ? DateTime(2100) : today,
       locale: const Locale('ar'),
     );
     if (picked != null) setState(() => _selectedDate = picked);
@@ -140,6 +142,29 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
     if (context.mounted) Navigator.pop(context);
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف المعاملة'),
+        content: const Text('هل أنت متأكد من حذف هذه المعاملة؟'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف', style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      context.read<TransactionsCubit>().deleteTransaction(widget.transaction!.id);
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final accentColor = _isIncome ? AppTheme.secondary : AppTheme.error;
@@ -154,8 +179,15 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
 
         return Scaffold(
           appBar: AppBar(
-            title:
-                Text(_isEditing ? 'تعديل المعاملة' : 'معاملة جديدة'),
+            title: Text(_isEditing ? 'تعديل المعاملة' : 'معاملة جديدة'),
+            actions: [
+              if (_isEditing)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppTheme.error),
+                  tooltip: 'حذف المعاملة',
+                  onPressed: () => _confirmDelete(context),
+                ),
+            ],
           ),
           body: Form(
             key: _formKey,
@@ -201,7 +233,7 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                         ),
                     decoration: InputDecoration(
                       labelText: 'المبلغ',
-                      prefixText: '﷼ ',
+                      prefixText: '\$ ',
                       prefixStyle: TextStyle(color: accentColor),
                     ),
                     validator: (v) {
@@ -240,16 +272,17 @@ class _AddTransactionViewState extends State<_AddTransactionView> {
                   const SizedBox(height: 16),
 
                   // ── Date ──────────────────────────────────────────────
-                  GestureDetector(
-                    onTap: _pickDate,
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'التاريخ',
-                        suffixIcon: Icon(Icons.calendar_today_outlined),
+                  if (!_isRecurring)
+                    GestureDetector(
+                      onTap: _pickDate,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'تاريخ المعاملة',
+                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                        ),
+                        child: Text(_formatDate(_selectedDate)),
                       ),
-                      child: Text(_formatDate(_selectedDate)),
                     ),
-                  ),
                   const SizedBox(height: 16),
 
                   // ── Description ───────────────────────────────────────
@@ -381,8 +414,9 @@ class _CategoryPickerSheet extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleLarge),
               TextButton(
                 onPressed: () {
+                  final router = GoRouter.of(context);
                   Navigator.pop(context);
-                  GoRouter.of(context).push('/categories');
+                  router.push('/categories');
                 },
                 child: const Text('إدارة الفئات'),
               ),

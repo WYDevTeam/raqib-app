@@ -44,17 +44,14 @@ class _FilterTransactionsSheetState extends State<FilterTransactionsSheet> {
     final picked = await showDatePicker(
       context: context,
       initialDate: (isStart ? _startDate : _endDate) ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      firstDate: isStart ? DateTime(2000) : (_startDate ?? DateTime(2000)),
+      lastDate: isStart ? (_endDate ?? DateTime(2100)) : DateTime(2100),
       locale: const Locale('ar'),
     );
     if (picked == null) return;
     setState(() {
       if (isStart) {
         _startDate = picked;
-        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-          _endDate = _startDate;
-        }
       } else {
         _endDate = picked;
       }

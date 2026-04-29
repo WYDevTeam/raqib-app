@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'core/di/injection.dart';
 import 'core/widgets/main_shell_screen.dart';
 import 'features/budget/presentation/add_budget_screen.dart';
 import 'features/budget/presentation/budget_screen.dart';
@@ -21,7 +19,6 @@ import 'features/transactions/domain/entities/transaction_entity.dart';
 import 'features/transactions/presentation/add_category_screen.dart';
 import 'features/transactions/presentation/add_transaction_screen.dart';
 import 'features/transactions/presentation/categories_management_screen.dart';
-import 'features/transactions/presentation/cubit/category_cubit.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -56,12 +53,8 @@ final GoRouter appRouter = GoRouter(
           path: 'add',
           parentNavigatorKey: _rootNavigatorKey,
           builder: (context, state) {
-            final category =
-                state.extra as CategoryEntity?;
-            return BlocProvider(
-              create: (_) => sl<CategoryCubit>(),
-              child: AddCategoryScreen(category: category),
-            );
+            final category = state.extra as CategoryEntity?;
+            return AddCategoryScreen(category: category);
           },
         ),
       ],

@@ -8,6 +8,7 @@ import '../../../core/widgets/amount_text.dart';
 import '../../../core/widgets/app_card.dart';
 import '../domain/entities/category_entity.dart';
 import '../domain/entities/transaction_entity.dart';
+import '../domain/entities/transaction_filter.dart';
 import 'cubit/transactions_cubit.dart';
 import 'cubit/transactions_state.dart';
 import 'widgets/filter_transactions_sheet.dart';
@@ -132,37 +133,57 @@ class _LoadedTabView extends StatelessWidget {
     final recurring =
         state.transactions.where((t) => t.isRecurring).toList();
 
-    return TabBarView(
+    return Column(
       children: [
-        RefreshIndicator(
-          onRefresh: () => context
-              .read<TransactionsCubit>()
-              .loadTransactions(filter: state.activeFilter),
-          child: regular.isEmpty
-              ? _EmptyState(
-                  message: 'لا توجد معاملات',
-                  sub: 'اضغط + لإضافة معاملتك الأولى',
-                  icon: Icons.receipt_long_outlined,
-                )
-              : _TransactionsList(
-                  transactions: regular,
-                  categories: state.categories,
-                ),
-        ),
-        RefreshIndicator(
-          onRefresh: () => context
-              .read<TransactionsCubit>()
-              .loadTransactions(filter: state.activeFilter),
-          child: recurring.isEmpty
-              ? _EmptyState(
-                  message: 'لا توجد معاملات متكررة',
-                  sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
-                  icon: Icons.autorenew,
-                )
-              : _RecurringList(
-                  transactions: recurring,
-                  categories: state.categories,
-                ),
+        if (state.activeFilter != null)
+          _FilterBanner(
+            filter: state.activeFilter!,
+            categories: state.categories,
+            onClear: () => context
+                .read<TransactionsCubit>()
+                .loadTransactions(filter: null),
+          ),
+        Expanded(
+          child: TabBarView(
+            children: [
+              RefreshIndicator(
+                onRefresh: () => context
+                    .read<TransactionsCubit>()
+                    .loadTransactions(filter: state.activeFilter),
+                child: regular.isEmpty
+                    ? _EmptyState(
+                        message: state.activeFilter != null
+                            ? 'لا توجد نتائج للفلتر المطبّق'
+                            : 'لا توجد معاملات',
+                        sub: state.activeFilter != null
+                            ? 'جرّب تغيير الفلتر أو إعادة تعيينه'
+                            : 'اضغط + لإضافة معاملتك الأولى',
+                        icon: state.activeFilter != null
+                            ? Icons.search_off
+                            : Icons.receipt_long_outlined,
+                      )
+                    : _TransactionsList(
+                        transactions: regular,
+                        categories: state.categories,
+                      ),
+              ),
+              RefreshIndicator(
+                onRefresh: () => context
+                    .read<TransactionsCubit>()
+                    .loadTransactions(filter: state.activeFilter),
+                child: recurring.isEmpty
+                    ? _EmptyState(
+                        message: 'لا توجد معاملات متكررة',
+                        sub: 'فعّل "اجعلها متكررة" عند إضافة معاملة',
+                        icon: Icons.autorenew,
+                      )
+                    : _RecurringList(
+                        transactions: recurring,
+                        categories: state.categories,
+                      ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -490,6 +511,89 @@ class _EmptyState extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Filter banner ─────────────────────────────────────────────────────────────
+
+class _FilterBanner extends StatelessWidget {
+  final TransactionFilter filter;
+  final List<CategoryEntity> categories;
+  final VoidCallback onClear;
+
+  const _FilterBanner({
+    required this.filter,
+    required this.categories,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[];
+
+    if (filter.isIncome == true) parts.add('دخل فقط');
+    if (filter.isIncome == false) parts.add('مصروف فقط');
+
+    if (filter.startDate != null || filter.endDate != null) {
+      final from = filter.startDate != null
+          ? '${filter.startDate!.day}/${filter.startDate!.month}'
+          : '';
+      final to = filter.endDate != null
+          ? '${filter.endDate!.day}/${filter.endDate!.month}'
+          : '';
+      if (from.isNotEmpty && to.isNotEmpty) {
+        parts.add('$from → $to');
+      } else if (from.isNotEmpty) {
+        parts.add('من $from');
+      } else {
+        parts.add('حتى $to');
+      }
+    }
+
+    if (filter.categoryIds != null && filter.categoryIds!.isNotEmpty) {
+      final names = filter.categoryIds!
+          .map((id) => categories.where((c) => c.id == id).firstOrNull?.name)
+          .whereType<String>()
+          .join('، ');
+      if (names.isNotEmpty) parts.add(names);
+    }
+
+    return Material(
+      color: AppTheme.primary.withValues(alpha: 0.08),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.filter_list_rounded,
+                size: 15, color: AppTheme.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                parts.isEmpty ? 'فلتر مفعّل' : parts.join(' • '),
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            GestureDetector(
+              onTap: onClear,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child:
+                    const Icon(Icons.close, size: 13, color: AppTheme.primary),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
