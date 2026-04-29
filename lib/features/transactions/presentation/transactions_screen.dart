@@ -28,6 +28,7 @@ class TransactionsScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppTheme.background,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDE3EE)),
                 ),
                 child: const TabBar(
                   indicator: BoxDecoration(

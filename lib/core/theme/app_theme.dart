@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Brand Colors
@@ -15,9 +14,12 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF6F767E);
   static const Color textDisabled = Color(0xFF9A9FA5);
 
+  static const String _fontFamily = 'Cairo';
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: _fontFamily,
       scaffoldBackgroundColor: background,
       colorScheme: const ColorScheme.light(
         primary: primary,
@@ -28,26 +30,27 @@ class AppTheme {
         onSecondary: Colors.white,
         onSurface: textPrimary,
       ),
-      textTheme: GoogleFonts.cairoTextTheme().copyWith(
-        displayLarge: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        displayMedium: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        displaySmall: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        headlineLarge: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        headlineMedium: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        headlineSmall: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.bold),
-        titleLarge: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.w600),
-        titleMedium: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.w600),
-        titleSmall: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.w600),
-        bodyLarge: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.normal),
-        bodyMedium: GoogleFonts.cairo(color: textPrimary, fontWeight: FontWeight.normal),
-        bodySmall: GoogleFonts.cairo(color: textSecondary, fontWeight: FontWeight.normal),
+      textTheme: const TextTheme(
+        displayLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        displayMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        displaySmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        headlineLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        headlineMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        headlineSmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
+        titleLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
+        titleMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
+        titleSmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
+        bodyLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.normal),
+        bodyMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.normal),
+        bodySmall:  TextStyle(fontFamily: _fontFamily, color: textSecondary, fontWeight: FontWeight.normal),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: background,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: textPrimary),
-        titleTextStyle: GoogleFonts.cairo(
+        iconTheme: IconThemeData(color: textPrimary),
+        titleTextStyle: TextStyle(
+          fontFamily: _fontFamily,
           color: textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -62,7 +65,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.cairo(
+          textStyle: const TextStyle(
+            fontFamily: _fontFamily,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -96,7 +100,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: error),
         ),
-        hintStyle: GoogleFonts.cairo(color: textDisabled),
+        hintStyle: const TextStyle(fontFamily: _fontFamily, color: textDisabled),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,
