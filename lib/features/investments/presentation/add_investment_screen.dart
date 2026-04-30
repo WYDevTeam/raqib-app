@@ -7,12 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../domain/usecases/get_asset_transactions_usecase.dart';
-import '../domain/usecases/add_asset_transaction_usecase.dart';
-import '../domain/usecases/add_asset_usecase.dart';
-import '../domain/usecases/delete_asset_transaction_usecase.dart';
-import '../domain/usecases/delete_asset_usecase.dart';
-import '../domain/usecases/get_assets_usecase.dart';
 import 'cubit/investments_cubit.dart';
 
 // ── Pro gating ────────────────────────────────────────────────────────────────
@@ -49,14 +43,7 @@ class AddInvestmentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => InvestmentsCubit(
-        sl<GetAssetsUseCase>(),
-        sl<AddAssetUseCase>(),
-        sl<DeleteAssetUseCase>(),
-        sl<GetAssetTransactionsUseCase>(),
-        sl<AddAssetTransactionUseCase>(),
-        sl<DeleteAssetTransactionUseCase>(),
-      ),
+      create: (_) => sl<InvestmentsCubit>(),
       child: const _AddInvestmentView(),
     );
   }

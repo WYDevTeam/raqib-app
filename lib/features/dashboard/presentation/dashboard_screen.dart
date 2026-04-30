@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -29,12 +31,33 @@ class _DashboardView extends StatefulWidget {
 }
 
 class _DashboardViewState extends State<_DashboardView> {
-  void _showFormulaBuilder() {
-    context.push('/dashboard/formula-builder');
+  Future<void> _showFormulaBuilder() async {
+    await context.push('/dashboard/formula-builder');
+    if (mounted) context.read<DashboardCubit>().refresh();
   }
 
   Future<void> _onRefresh() async {
     await context.read<DashboardCubit>().refresh();
+  }
+
+  String _formatWidgetValue(double value, String displayFormat) {
+    return switch (displayFormat) {
+      'signed' => '${value >= 0 ? '+' : ''}${_fmt(value)}',
+      'percent' => '${NumberFormat('#,##0.##').format(value)}%',
+      _ => _fmt(value),
+    };
+  }
+
+  String _formulaDisplayText(String? formulaJson) {
+    if (formulaJson == null || formulaJson.isEmpty) return '';
+    try {
+      final elements = jsonDecode(formulaJson) as List<dynamic>;
+      return elements
+          .map((e) => e['label'] as String? ?? '')
+          .join(' ');
+    } catch (_) {
+      return '';
+    }
   }
 
   @override
@@ -42,7 +65,6 @@ class _DashboardViewState extends State<_DashboardView> {
     return BlocBuilder<DashboardCubit, DashboardState>(
       builder: (context, state) {
         final loaded = state is DashboardLoaded ? state : null;
-        final summary = loaded?.summary;
 
         return Scaffold(
           appBar: AppBar(
@@ -101,12 +123,33 @@ class _DashboardViewState extends State<_DashboardView> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (summary != null)
-                        _buildCustomFormulaCard(
-                          context,
-                          'الفائض بعد احتياط 10%',
-                          _fmt(summary.realPnLThisMonth * 0.9),
-                          'الدخل الفعلي - (المصاريف الفعلية * 1.1)',
+                      if (loaded != null)
+                        ...loaded.widgets
+                            .where((w) => w.isCustomFormula)
+                            .map((w) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildCustomFormulaCard(
+                                    context,
+                                    w.title,
+                                    _formatWidgetValue(
+                                      loaded.summary.customWidgetValues[w.id] ?? 0,
+                                      w.displayFormat,
+                                    ),
+                                    _formulaDisplayText(w.formulaJson),
+                                  ),
+                                )),
+                      if (loaded != null &&
+                          loaded.widgets.where((w) => w.isCustomFormula).isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              'أضف معادلة مخصصة لعرضها هنا',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                            ),
+                          ),
                         ),
                     ],
                   ),

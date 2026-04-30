@@ -8,4 +8,5 @@ abstract class InvestmentsRepository {
   Future<void> deleteAsset(String id);
   Future<void> addTransaction(AssetTransactionEntity tx);
   Future<void> deleteTransaction(String txId);
+  Future<void> updateAssetPrice(String assetId, double price);
 }

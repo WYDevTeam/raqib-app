@@ -83,8 +83,10 @@ class _OnboardingView extends StatelessWidget {
                       subtitle: 'أضف ما تملكه الآن خطوة بخطوة',
                       onTap: loading
                           ? null
-                          : () =>
-                              context.push('/onboarding/initial-assets'),
+                          : () => context.push(
+                                '/onboarding/initial-assets',
+                                extra: context.read<OnboardingCubit>(),
+                              ),
                     ),
                     const SizedBox(height: 16),
                     _buildOptionCard(

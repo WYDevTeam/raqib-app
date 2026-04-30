@@ -3,9 +3,11 @@ import 'package:hive/hive.dart';
 class DashboardWidgetModel extends HiveObject {
   final String id;
   final String title;
-  final String formulaExpression;
+  String formulaExpression;
   bool isVisible;
   int sortOrder;
+  String type;
+  String displayFormat;
 
   DashboardWidgetModel({
     required this.id,
@@ -13,6 +15,8 @@ class DashboardWidgetModel extends HiveObject {
     required this.formulaExpression,
     this.isVisible = true,
     this.sortOrder = 0,
+    this.type = 'builtin',
+    this.displayFormat = 'number',
   });
 }
 
@@ -32,13 +36,15 @@ class DashboardWidgetModelAdapter extends TypeAdapter<DashboardWidgetModel> {
       formulaExpression: fields[2] as String,
       isVisible: fields[3] as bool,
       sortOrder: fields[4] as int,
+      type: (fields[5] as String?) ?? 'builtin',
+      displayFormat: (fields[6] as String?) ?? 'number',
     );
   }
 
   @override
   void write(BinaryWriter writer, DashboardWidgetModel obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -48,6 +54,10 @@ class DashboardWidgetModelAdapter extends TypeAdapter<DashboardWidgetModel> {
       ..writeByte(3)
       ..write(obj.isVisible)
       ..writeByte(4)
-      ..write(obj.sortOrder);
+      ..write(obj.sortOrder)
+      ..writeByte(5)
+      ..write(obj.type)
+      ..writeByte(6)
+      ..write(obj.displayFormat);
   }
 }

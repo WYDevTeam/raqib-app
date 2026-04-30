@@ -9,6 +9,7 @@ import '../../domain/usecases/delete_asset_transaction_usecase.dart';
 import '../../domain/usecases/delete_asset_usecase.dart';
 import '../../domain/usecases/get_asset_transactions_usecase.dart';
 import '../../domain/usecases/get_assets_usecase.dart';
+import '../../domain/usecases/update_asset_price_usecase.dart';
 import 'investments_state.dart';
 
 class InvestmentsCubit extends Cubit<InvestmentsState> {
@@ -18,6 +19,7 @@ class InvestmentsCubit extends Cubit<InvestmentsState> {
   final GetAssetTransactionsUseCase _getTransactions;
   final AddAssetTransactionUseCase _addTransaction;
   final DeleteAssetTransactionUseCase _deleteTransaction;
+  final UpdateAssetPriceUseCase _updateAssetPrice;
 
   InvestmentsCubit(
     this._getAssets,
@@ -26,6 +28,7 @@ class InvestmentsCubit extends Cubit<InvestmentsState> {
     this._getTransactions,
     this._addTransaction,
     this._deleteTransaction,
+    this._updateAssetPrice,
   ) : super(const InvestmentsInitial());
 
   Future<void> loadInvestments() async {
@@ -96,6 +99,15 @@ class InvestmentsCubit extends Cubit<InvestmentsState> {
   Future<void> deleteTransaction(String txId) async {
     try {
       await _deleteTransaction(txId);
+      await _doLoad();
+    } catch (e) {
+      emit(InvestmentsError(e.toString()));
+    }
+  }
+
+  Future<void> updatePrice(String assetId, double price) async {
+    try {
+      await _updateAssetPrice(assetId, price);
       await _doLoad();
     } catch (e) {
       emit(InvestmentsError(e.toString()));

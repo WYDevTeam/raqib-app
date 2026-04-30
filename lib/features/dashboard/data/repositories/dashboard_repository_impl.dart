@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:hive/hive.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/calculations_service.dart';
+import '../../../../core/services/formula_service.dart';
 import '../../../../core/utils/either.dart';
 import '../../domain/entities/dashboard_summary.dart';
 import '../../domain/entities/dashboard_widget_entity.dart';
@@ -14,19 +17,21 @@ class DashboardRepositoryImpl implements DashboardRepository {
   final CalculationsService _calc;
   final Box<DashboardWidgetModel> _widgetsBox;
   final ApiService _apiService;
+  final FormulaService _formulaService;
 
   DashboardRepositoryImpl({
     required CalculationsService calc,
     required Box<DashboardWidgetModel> widgetsBox,
     required ApiService apiService,
+    required FormulaService formulaService,
   })  : _calc = calc,
         _widgetsBox = widgetsBox,
-        _apiService = apiService;
+        _apiService = apiService,
+        _formulaService = formulaService;
 
   @override
   Future<Either<AppFailure, DashboardSummary>> getDashboardSummary() async {
     try {
-      // Refresh prices from API (respects 1-hour cache — won't over-fetch)
       await _apiService.refreshAssetPrices(_calc.getAllAssets());
 
       final now = DateTime.now();
@@ -50,6 +55,14 @@ class DashboardRepositoryImpl implements DashboardRepository {
             ),
       ];
 
+      final customWidgetValues = <String, double>{};
+      for (final model in _widgetsBox.values.where(
+        (m) => m.type == 'custom_formula' && m.formulaExpression.isNotEmpty,
+      )) {
+        customWidgetValues[model.id] =
+            _formulaService.evaluate(model.formulaExpression);
+      }
+
       return Right(
         DashboardSummary(
           liquidCash: _calc.getLiquidCash(),
@@ -66,6 +79,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
           totalAmanah: _calc.getTotalAmanah(),
           totalDebtsOwed: _calc.getTotalDebtsOwed(),
           reminders: reminders,
+          customWidgetValues: customWidgetValues,
         ),
       );
     } catch (e) {
@@ -83,6 +97,9 @@ class DashboardRepositoryImpl implements DashboardRepository {
               title: m.title,
               isVisible: m.isVisible,
               sortOrder: m.sortOrder,
+              type: m.type,
+              formulaJson: m.formulaExpression.isEmpty ? null : m.formulaExpression,
+              displayFormat: m.displayFormat,
             ),
           )
           .toList()
@@ -120,6 +137,41 @@ class DashboardRepositoryImpl implements DashboardRepository {
       return const Right(null);
     } catch (e) {
       return Left(AppFailure('فشل حفظ إعدادات الواجهة: $e'));
+    }
+  }
+
+  @override
+  Future<Either<AppFailure, void>> saveCustomWidget(
+      DashboardWidget widget) async {
+    try {
+      final maxOrder = _widgetsBox.isEmpty
+          ? 0
+          : _widgetsBox.values.map((w) => w.sortOrder).reduce(max) + 1;
+      await _widgetsBox.put(
+        widget.id,
+        DashboardWidgetModel(
+          id: widget.id,
+          title: widget.title,
+          formulaExpression: widget.formulaJson ?? '',
+          isVisible: widget.isVisible,
+          sortOrder: widget.sortOrder > 0 ? widget.sortOrder : maxOrder,
+          type: widget.type,
+          displayFormat: widget.displayFormat,
+        ),
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(AppFailure('فشل حفظ الكارد: $e'));
+    }
+  }
+
+  @override
+  Future<Either<AppFailure, void>> deleteCustomWidget(String id) async {
+    try {
+      await _widgetsBox.delete(id);
+      return const Right(null);
+    } catch (e) {
+      return Left(AppFailure('فشل حذف الكارد: $e'));
     }
   }
 }

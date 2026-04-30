@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/entities/dashboard_widget_entity.dart';
+import '../domain/usecases/delete_custom_widget_usecase.dart';
 import '../domain/usecases/update_dashboard_widgets_usecase.dart';
 
 class CustomizeDashboardScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class CustomizeDashboardScreen extends StatefulWidget {
 
 class _CustomizeDashboardScreenState extends State<CustomizeDashboardScreen> {
   late List<DashboardWidget> _widgets;
+  final List<String> _toDelete = [];
   bool _isSaving = false;
 
   @override
@@ -49,8 +51,18 @@ class _CustomizeDashboardScreenState extends State<CustomizeDashboardScreen> {
     });
   }
 
+  void _deleteWidget(DashboardWidget w) {
+    setState(() {
+      _widgets.removeWhere((ww) => ww.id == w.id);
+      _toDelete.add(w.id);
+    });
+  }
+
   Future<void> _save() async {
     setState(() => _isSaving = true);
+    for (final id in _toDelete) {
+      await sl<DeleteCustomWidgetUseCase>()(id);
+    }
     await sl<UpdateDashboardWidgetsUseCase>()(_widgets);
     if (mounted) Navigator.pop(context);
   }
@@ -88,6 +100,7 @@ class _CustomizeDashboardScreenState extends State<CustomizeDashboardScreen> {
                   key: ValueKey(w.id),
                   widget: w,
                   onToggle: () => _toggle(index),
+                  onDelete: w.isCustomFormula ? () => _deleteWidget(w) : null,
                 );
               },
             ),
@@ -120,7 +133,14 @@ class _CustomizeDashboardScreenState extends State<CustomizeDashboardScreen> {
 class _WidgetTile extends StatelessWidget {
   final DashboardWidget widget;
   final VoidCallback onToggle;
-  const _WidgetTile({super.key, required this.widget, required this.onToggle});
+  final VoidCallback? onDelete;
+
+  const _WidgetTile({
+    super.key,
+    required this.widget,
+    required this.onToggle,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -135,10 +155,21 @@ class _WidgetTile extends StatelessWidget {
         leading: const Icon(Icons.drag_handle, color: AppTheme.textDisabled),
         title:
             Text(widget.title, style: Theme.of(context).textTheme.titleSmall),
-        trailing: Switch(
-          value: widget.isVisible,
-          onChanged: (_) => onToggle(),
-          activeThumbColor: AppTheme.primary,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(Icons.delete_outline,
+                    color: AppTheme.error, size: 20),
+                onPressed: onDelete,
+              ),
+            Switch(
+              value: widget.isVisible,
+              onChanged: (_) => onToggle(),
+              activeThumbColor: AppTheme.primary,
+            ),
+          ],
         ),
       ),
     );

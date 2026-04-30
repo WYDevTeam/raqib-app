@@ -8,7 +8,7 @@ class AppTheme {
   static const Color surface = Colors.white;
   static const Color error = Color(0xFFFF5B5B);
   static const Color warning = Color(0xFFF9C851);
-  
+
   // Text Colors
   static const Color textPrimary = Color(0xFF1A1D1F);
   static const Color textSecondary = Color(0xFF6F767E);
@@ -31,18 +31,66 @@ class AppTheme {
         onSurface: textPrimary,
       ),
       textTheme: const TextTheme(
-        displayLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        displayMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        displaySmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        headlineLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        headlineMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        headlineSmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.bold),
-        titleLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
-        titleMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
-        titleSmall:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.w600),
-        bodyLarge:  TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.normal),
-        bodyMedium: TextStyle(fontFamily: _fontFamily, color: textPrimary, fontWeight: FontWeight.normal),
-        bodySmall:  TextStyle(fontFamily: _fontFamily, color: textSecondary, fontWeight: FontWeight.normal),
+        displayLarge: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        displayMedium: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        displaySmall: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineLarge: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+        titleLarge: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        titleMedium: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        titleSmall: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.normal,
+        ),
+        bodyMedium: TextStyle(
+          fontFamily: _fontFamily,
+          color: textPrimary,
+          fontWeight: FontWeight.normal,
+        ),
+        bodySmall: TextStyle(
+          fontFamily: _fontFamily,
+          color: textSecondary,
+          fontWeight: FontWeight.normal,
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: background,
@@ -72,18 +120,35 @@ class AppTheme {
           ),
         ),
       ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primary,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: const BorderSide(color: Color(0xFFDDE3EE), width: 1),
+          textStyle: const TextStyle(
+            fontFamily: _fontFamily,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: EdgeInsets.zero,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -100,7 +165,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: error),
         ),
-        hintStyle: const TextStyle(fontFamily: _fontFamily, color: textDisabled),
+        hintStyle: const TextStyle(
+          fontFamily: _fontFamily,
+          color: textDisabled,
+        ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surface,

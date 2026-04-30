@@ -55,8 +55,10 @@ class _InvestmentsView extends StatelessWidget {
                       labelColor: Colors.white,
                       unselectedLabelColor: AppTheme.textSecondary,
                       dividerColor: Colors.transparent,
-                      labelStyle:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                       tabs: [
                         Tab(text: 'محفظة الأصول'),
                         Tab(text: 'سجل العمليات'),
@@ -67,6 +69,7 @@ class _InvestmentsView extends StatelessWidget {
               ),
             ),
             floatingActionButton: FloatingActionButton(
+              heroTag: 'investments_add_fab',
               onPressed: () {
                 final cubit = context.read<InvestmentsCubit>();
                 context.push('/investments/add').then((_) {
@@ -98,8 +101,7 @@ class _InvestmentsView extends StatelessWidget {
         children: [
           _buildTotalCard(context, state),
           const SizedBox(height: 24),
-          Text('محفظة الأصول',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text('محفظة الأصول', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           if (state == null || state.assets.isEmpty)
             _buildEmpty(context)
@@ -112,8 +114,7 @@ class _InvestmentsView extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionsTab(
-      BuildContext context, InvestmentsLoaded? state) {
+  Widget _buildTransactionsTab(BuildContext context, InvestmentsLoaded? state) {
     final txs = state?.allTransactions ?? [];
     if (txs.isEmpty) {
       return _buildEmpty(context, message: 'لا توجد عمليات بعد');
@@ -123,10 +124,8 @@ class _InvestmentsView extends StatelessWidget {
       itemCount: txs.length,
       itemBuilder: (context, i) {
         final tx = txs[i];
-        final assetName = state?.assets
-                .where((a) => a.id == tx.assetId)
-                .firstOrNull
-                ?.name ??
+        final assetName =
+            state?.assets.where((a) => a.id == tx.assetId).firstOrNull?.name ??
             '';
         return _buildTransactionLogTile(context, tx, assetName);
       },
@@ -154,15 +153,16 @@ class _InvestmentsView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('إجمالي قيمة الأصول',
-              style: Theme.of(context).textTheme.bodyLarge),
+          Text(
+            'إجمالي قيمة الأصول',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
           const SizedBox(height: 8),
           Text(
             state == null ? '---' : _fmt(totalValue),
-            style: Theme.of(context)
-                .textTheme
-                .displaySmall
-                ?.copyWith(color: AppTheme.primary),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(color: AppTheme.primary),
           ),
           const SizedBox(height: 16),
           const Divider(),
@@ -172,29 +172,31 @@ class _InvestmentsView extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  Text('التكلفة',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text('التكلفة', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(height: 4),
-                  Text(state == null ? '---' : _fmt(totalCost),
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    state == null ? '---' : _fmt(totalCost),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ],
               ),
-              Container(
-                  width: 1, height: 40, color: const Color(0xFFEFEFEF)),
+              Container(width: 1, height: 40, color: const Color(0xFFEFEFEF)),
               Column(
                 children: [
-                  Text('الربح الورقي',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'الربح الورقي',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     state == null
                         ? '---'
                         : '${unrealized >= 0 ? '+' : ''}${_fmt(unrealized)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: unrealized >= 0
-                              ? AppTheme.secondary
-                              : AppTheme.error,
-                        ),
+                      color: unrealized >= 0
+                          ? AppTheme.secondary
+                          : AppTheme.error,
+                    ),
                   ),
                 ],
               ),
@@ -206,7 +208,10 @@ class _InvestmentsView extends StatelessWidget {
   }
 
   Widget _buildAssetCard(
-      BuildContext context, AssetEntity asset, InvestmentsLoaded state) {
+    BuildContext context,
+    AssetEntity asset,
+    InvestmentsLoaded state,
+  ) {
     final icon = _iconForType(asset.type);
     final color = _colorForType(asset.type);
     final pnl = asset.unrealizedPnL;
@@ -245,9 +250,10 @@ class _InvestmentsView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(asset.name,
-                            style:
-                                Theme.of(context).textTheme.titleMedium),
+                        Text(
+                          asset.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                         Text(
                           '${_fmtQty(asset.quantity)} ${asset.unit}',
                           style: Theme.of(context).textTheme.bodySmall,
@@ -257,10 +263,9 @@ class _InvestmentsView extends StatelessWidget {
                   ),
                   Text(
                     _fmt(asset.currentTotalValue),
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -277,22 +282,26 @@ class _InvestmentsView extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('التكلفة',
-                            style: Theme.of(context).textTheme.bodySmall),
-                        Text(_fmt(asset.totalCost),
-                            style: Theme.of(context).textTheme.titleSmall),
+                        Text(
+                          'التكلفة',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        Text(
+                          _fmt(asset.totalCost),
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('الربح/الخسارة',
-                            style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          'الربح/الخسارة',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                         Text(
                           '${pnl >= 0 ? '+' : ''}${_fmt(pnl)} (${asset.unrealizedPnLPercent.toStringAsFixed(1)}%)',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
+                          style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
                                 color: pnl >= 0
                                     ? AppTheme.secondary
@@ -312,7 +321,10 @@ class _InvestmentsView extends StatelessWidget {
   }
 
   Widget _buildTransactionLogTile(
-      BuildContext context, AssetTransactionEntity tx, String assetName) {
+    BuildContext context,
+    AssetTransactionEntity tx,
+    String assetName,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -342,8 +354,7 @@ class _InvestmentsView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(assetName,
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(assetName, style: Theme.of(context).textTheme.titleMedium),
                 Text(
                   '${tx.isBuy ? 'شراء' : 'بيع'} ${_fmtQty(tx.quantity)} • ${DateFormat('dd/MM/yyyy').format(tx.date)}',
                   style: Theme.of(context).textTheme.bodySmall,
@@ -354,11 +365,9 @@ class _InvestmentsView extends StatelessWidget {
           Text(
             _fmt(tx.totalAmount),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: tx.isBuy
-                      ? AppTheme.textPrimary
-                      : AppTheme.secondary,
-                ),
+              fontWeight: FontWeight.bold,
+              color: tx.isBuy ? AppTheme.textPrimary : AppTheme.secondary,
+            ),
           ),
         ],
       ),
@@ -371,19 +380,23 @@ class _InvestmentsView extends StatelessWidget {
         padding: const EdgeInsets.all(40),
         child: Column(
           children: [
-            const Icon(Icons.account_balance_wallet_outlined,
-                size: 64, color: AppTheme.textDisabled),
+            const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 64,
+              color: AppTheme.textDisabled,
+            ),
             const SizedBox(height: 16),
             Text(
               message ?? 'لا توجد أصول بعد',
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 15,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
               'اضغط + لإضافة أصل جديد',
-              style:
-                  TextStyle(color: AppTheme.textDisabled, fontSize: 13),
+              style: TextStyle(color: AppTheme.textDisabled, fontSize: 13),
             ),
           ],
         ),
@@ -393,22 +406,22 @@ class _InvestmentsView extends StatelessWidget {
 }
 
 IconData _iconForType(String type) => switch (type) {
-      'gold' => Icons.diamond,
-      'silver' => Icons.diamond_outlined,
-      'platinum' => Icons.circle,
-      'palladium' => Icons.circle_outlined,
-      'crypto' => Icons.currency_bitcoin,
-      _ => Icons.account_balance,
-    };
+  'gold' => Icons.diamond,
+  'silver' => Icons.diamond_outlined,
+  'platinum' => Icons.circle,
+  'palladium' => Icons.circle_outlined,
+  'crypto' => Icons.currency_bitcoin,
+  _ => Icons.account_balance,
+};
 
 Color _colorForType(String type) => switch (type) {
-      'gold' => Colors.amber,
-      'silver' => Colors.blueGrey,
-      'platinum' => const Color(0xFF78909C),
-      'palladium' => const Color(0xFF546E7A),
-      'crypto' => Colors.orange,
-      _ => AppTheme.primary,
-    };
+  'gold' => Colors.amber,
+  'silver' => Colors.blueGrey,
+  'platinum' => const Color(0xFF78909C),
+  'palladium' => const Color(0xFF546E7A),
+  'crypto' => Colors.orange,
+  _ => AppTheme.primary,
+};
 
 String _fmt(double v) {
   final abs = NumberFormat('#,##0.##').format(v.abs());

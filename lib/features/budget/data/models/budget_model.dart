@@ -1,26 +1,52 @@
 import 'package:hive/hive.dart';
 
-/// period: 0=monthly, 1=weekly, 2=yearly
+import '../../domain/entities/budget_entity.dart';
+
 class BudgetModel extends HiveObject {
   final String id;
-  final String name;
-  final String categoryId; // '' = applies to all spending
-  final double limitAmount;
-  final int period;
+  final String categoryId;
+  final int year;
+  final int month;
+  final double monthlyTarget;
+  final bool applyToAllUpcoming;
   final int createdAtMs;
   bool isActive;
 
   BudgetModel({
     required this.id,
-    required this.name,
     required this.categoryId,
-    required this.limitAmount,
-    required this.period,
+    required this.year,
+    required this.month,
+    required this.monthlyTarget,
+    required this.applyToAllUpcoming,
     required this.createdAtMs,
     this.isActive = true,
   });
 
   DateTime get createdAt => DateTime.fromMillisecondsSinceEpoch(createdAtMs);
+
+  BudgetEntity toEntity() {
+    return BudgetEntity(
+      id: id,
+      categoryId: categoryId,
+      year: year,
+      month: month,
+      monthlyTarget: monthlyTarget,
+      applyToAllUpcoming: applyToAllUpcoming,
+    );
+  }
+
+  factory BudgetModel.fromEntity(BudgetEntity entity) {
+    return BudgetModel(
+      id: entity.id,
+      categoryId: entity.categoryId,
+      year: entity.year,
+      month: entity.month,
+      monthlyTarget: entity.monthlyTarget,
+      applyToAllUpcoming: entity.applyToAllUpcoming,
+      createdAtMs: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
 }
 
 class BudgetModelAdapter extends TypeAdapter<BudgetModel> {
@@ -35,32 +61,35 @@ class BudgetModelAdapter extends TypeAdapter<BudgetModel> {
     };
     return BudgetModel(
       id: fields[0] as String,
-      name: fields[1] as String,
-      categoryId: fields[2] as String,
-      limitAmount: fields[3] as double,
-      period: fields[4] as int,
-      createdAtMs: fields[5] as int,
-      isActive: fields[6] as bool,
+      categoryId: fields[1] as String,
+      year: fields[2] as int,
+      month: fields[3] as int,
+      monthlyTarget: fields[4] as double,
+      applyToAllUpcoming: fields[5] as bool,
+      createdAtMs: fields[6] as int,
+      isActive: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, BudgetModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.name)
-      ..writeByte(2)
       ..write(obj.categoryId)
+      ..writeByte(2)
+      ..write(obj.year)
       ..writeByte(3)
-      ..write(obj.limitAmount)
+      ..write(obj.month)
       ..writeByte(4)
-      ..write(obj.period)
+      ..write(obj.monthlyTarget)
       ..writeByte(5)
-      ..write(obj.createdAtMs)
+      ..write(obj.applyToAllUpcoming)
       ..writeByte(6)
+      ..write(obj.createdAtMs)
+      ..writeByte(7)
       ..write(obj.isActive);
   }
 }

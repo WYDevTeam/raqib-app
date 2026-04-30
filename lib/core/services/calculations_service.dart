@@ -31,10 +31,21 @@ class CalculationsService {
   // ── Cash ───────────────────────────────────────────────────────────────────
 
   double getLiquidCash() {
-    return _txBox.values.fold(
+    final fromTx = _txBox.values.fold(
       0.0,
       (sum, t) => sum + (t.isIncome ? t.amount : -t.amount),
     );
+    // Debts given: cash out (totalAmount), cash back in (paidAmount)
+    final fromDebts = _debtBox.values.fold(
+      0.0,
+      (sum, d) => sum + d.paidAmount - d.totalAmount,
+    );
+    // Amanah held: cash received (amount), cash returned out (returnedAmount)
+    final fromAmanah = _amanahBox.values.fold(
+      0.0,
+      (sum, a) => sum + a.amount - a.returnedAmount,
+    );
+    return fromTx + fromDebts + fromAmanah;
   }
 
   // ── Assets ─────────────────────────────────────────────────────────────────
@@ -63,7 +74,7 @@ class CalculationsService {
   double getTotalAmanah() {
     return _amanahBox.values
         .where((a) => !a.isReturned)
-        .fold(0.0, (sum, a) => sum + a.amount);
+        .fold(0.0, (sum, a) => sum + a.remainingAmount);
   }
 
   double getTotalDebtsOwed() {
@@ -101,6 +112,14 @@ class CalculationsService {
   }
 
   List<AssetModel> getAllAssets() => _assetBox.values.toList();
+
+  double getTotalRealizedPnL() {
+    return _assetBox.values.fold(0.0, (sum, a) => sum + a.realizedPnL);
+  }
+
+  double getTotalUnrealizedPnL() {
+    return _assetBox.values.fold(0.0, (sum, a) => sum + a.unrealizedPnl);
+  }
 
   // ── Monthly P&L ────────────────────────────────────────────────────────────
 

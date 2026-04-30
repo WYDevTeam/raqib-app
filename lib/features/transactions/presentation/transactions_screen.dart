@@ -27,9 +27,7 @@ class TransactionsScreen extends StatelessWidget {
         BlocProvider(
           create: (_) => sl<TransactionsCubit>()..loadTransactions(),
         ),
-        BlocProvider(
-          create: (_) => sl<RecurringCubit>()..loadRules(),
-        ),
+        BlocProvider(create: (_) => sl<RecurringCubit>()..loadRules()),
       ],
       child: const _TransactionsView(),
     );
@@ -55,10 +53,10 @@ class _TransactionsView extends StatelessWidget {
                   child: Container(
                     height: 40,
                     decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFDDE3EE)),
-                ),
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFDDE3EE)),
+                    ),
                     child: const TabBar(
                       indicator: BoxDecoration(
                         color: AppTheme.primary,
@@ -69,7 +67,9 @@ class _TransactionsView extends StatelessWidget {
                       unselectedLabelColor: AppTheme.textSecondary,
                       dividerColor: Colors.transparent,
                       labelStyle: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                       tabs: [
                         Tab(text: 'سجل المعاملات'),
                         Tab(text: 'المتكررة'),
@@ -90,15 +90,17 @@ class _TransactionsView extends StatelessWidget {
               ],
             ),
             body: switch (state) {
-              TransactionsInitial() =>
-                const Center(child: CircularProgressIndicator()),
-              TransactionsLoading() =>
-                const Center(child: CircularProgressIndicator()),
-              TransactionsError(:final message) =>
-                _ErrorView(message: message),
+              TransactionsInitial() => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              TransactionsLoading() => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              TransactionsError(:final message) => _ErrorView(message: message),
               TransactionsLoaded() => _LoadedTabView(state: state),
             },
             floatingActionButton: FloatingActionButton(
+              heroTag: 'transactions_add_fab',
               onPressed: () => _pushAdd(context, state),
               backgroundColor: AppTheme.primary,
               child: const Icon(Icons.add, color: Colors.white),
@@ -112,8 +114,7 @@ class _TransactionsView extends StatelessWidget {
   void _pushAdd(BuildContext context, TransactionsState state) {
     final cubit = context.read<TransactionsCubit>();
     final recurringCubit = context.read<RecurringCubit>();
-    final filter =
-        state is TransactionsLoaded ? state.activeFilter : null;
+    final filter = state is TransactionsLoaded ? state.activeFilter : null;
     context.push('/transactions/add').then((_) {
       cubit.loadTransactions(filter: filter);
       recurringCubit.loadRules();
@@ -151,9 +152,9 @@ class _LoadedTabView extends StatelessWidget {
           _FilterBanner(
             filter: state.activeFilter!,
             categories: state.categories,
-            onClear: () => context
-                .read<TransactionsCubit>()
-                .loadTransactions(filter: null),
+            onClear: () => context.read<TransactionsCubit>().loadTransactions(
+              filter: null,
+            ),
           ),
         Expanded(
           child: TabBarView(
@@ -186,8 +187,7 @@ class _LoadedTabView extends StatelessWidget {
                 builder: (ctx, recurringState) {
                   if (recurringState is RecurringLoaded) {
                     return RefreshIndicator(
-                      onRefresh: () =>
-                          ctx.read<RecurringCubit>().loadRules(),
+                      onRefresh: () => ctx.read<RecurringCubit>().loadRules(),
                       child: _RecurringRulesTab(
                         rules: recurringState.rules,
                         categories: state.categories,
@@ -196,8 +196,7 @@ class _LoadedTabView extends StatelessWidget {
                   }
                   if (recurringState is RecurringProcessing ||
                       recurringState is RecurringInitial) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   }
                   return _EmptyState(
                     message: 'لا توجد معاملات متكررة',
@@ -217,8 +216,10 @@ class _LoadedTabView extends StatelessWidget {
 class _TransactionsList extends StatelessWidget {
   final List<TransactionEntity> transactions;
   final List<CategoryEntity> categories;
-  const _TransactionsList(
-      {required this.transactions, required this.categories});
+  const _TransactionsList({
+    required this.transactions,
+    required this.categories,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -240,8 +241,10 @@ class _TransactionsList extends StatelessWidget {
         _SummaryRow(totalIncome: totalIncome, totalExpense: totalExpense),
         const SizedBox(height: 20),
         for (final entry in grouped.entries) ...[
-          Text(_dateLabel(entry.key),
-              style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            _dateLabel(entry.key),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 10),
           for (final t in entry.value)
             Padding(
@@ -265,15 +268,28 @@ class _TransactionsList extends StatelessWidget {
   String _dateLabel(String key) {
     final parts = key.split('-');
     final date = DateTime(
-        int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final d = DateTime(date.year, date.month, date.day);
     if (d == today) return 'اليوم';
     if (d == today.subtract(const Duration(days: 1))) return 'أمس';
     const months = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -322,10 +338,13 @@ class _TransactionTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               AmountText(
-                  amount: transaction.amount,
-                  isIncome: transaction.isIncome),
-              Text(_shortDate(transaction.date),
-                  style: Theme.of(context).textTheme.bodySmall),
+                amount: transaction.amount,
+                isIncome: transaction.isIncome,
+              ),
+              Text(
+                _shortDate(transaction.date),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ],
@@ -343,7 +362,9 @@ class _TransactionTile extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(
-      BuildContext context, TransactionsCubit cubit) async {
+    BuildContext context,
+    TransactionsCubit cubit,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -351,12 +372,12 @@ class _TransactionTile extends StatelessWidget {
         content: const Text('هل أنت متأكد من حذف هذه المعاملة؟'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('حذف', style: TextStyle(color: AppTheme.error)),
+            child: const Text('حذف', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),
@@ -371,8 +392,9 @@ class _CategoryIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        category != null ? Color(category!.colorValue) : AppTheme.primary;
+    final color = category != null
+        ? Color(category!.colorValue)
+        : AppTheme.primary;
     return Container(
       width: 44,
       height: 44,
@@ -399,8 +421,7 @@ class _CategoryIcon extends StatelessWidget {
 class _RecurringRulesTab extends StatelessWidget {
   final List<RecurringRuleEntity> rules;
   final List<CategoryEntity> categories;
-  const _RecurringRulesTab(
-      {required this.rules, required this.categories});
+  const _RecurringRulesTab({required this.rules, required this.categories});
 
   @override
   Widget build(BuildContext context) {
@@ -438,18 +459,17 @@ class _RecurringRulesTab extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildRuleCard(
-      BuildContext context, RecurringRuleEntity rule) {
-    final cat =
-        categories.where((c) => c.id == rule.categoryId).firstOrNull;
+  List<Widget> _buildRuleCard(BuildContext context, RecurringRuleEntity rule) {
+    final cat = categories.where((c) => c.id == rule.categoryId).firstOrNull;
     final isActive = rule.isActive;
-    final accentColor =
-        isActive ? AppTheme.primary : AppTheme.textDisabled;
+    final accentColor = isActive ? AppTheme.primary : AppTheme.textDisabled;
 
     DateTime? nextOcc;
     if (isActive && rule.lastGeneratedDate != null) {
       nextOcc = RecurrenceUtils.nextOccurrenceAfter(
-          rule.lastGeneratedDate!, rule.frequency);
+        rule.lastGeneratedDate!,
+        rule.frequency,
+      );
       if (rule.endDate != null && nextOcc.isAfter(rule.endDate!)) {
         nextOcc = null;
       }
@@ -492,23 +512,20 @@ class _RecurringRulesTab extends StatelessWidget {
                         Expanded(
                           child: Text(
                             cat?.name ?? 'غير مصنّف',
-                            style:
-                                Theme.of(context).textTheme.titleSmall,
+                            style: Theme.of(context).textTheme.titleSmall,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (!isActive)
-                          _Badge('متوقفة', AppTheme.textSecondary),
+                        if (!isActive) _Badge('متوقفة', AppTheme.textSecondary),
                       ],
                     ),
                     Text(
                       isActive && nextOcc != null
                           ? '${rule.frequency.arabicLabel} · القادم: ${RecurrenceUtils.formatDate(nextOcc)}'
                           : rule.frequency.arabicLabel,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: accentColor),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: accentColor),
                     ),
                   ],
                 ),
@@ -516,8 +533,7 @@ class _RecurringRulesTab extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  AmountText(
-                      amount: rule.amount, isIncome: rule.isIncome),
+                  AmountText(amount: rule.amount, isIncome: rule.isIncome),
                   if (isActive)
                     GestureDetector(
                       onTap: () async {
@@ -530,24 +546,21 @@ class _RecurringRulesTab extends StatelessWidget {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(ctx, false),
+                                onPressed: () => Navigator.pop(ctx, false),
                                 child: const Text('إلغاء'),
                               ),
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(ctx, true),
-                                child: const Text('إيقاف',
-                                    style: TextStyle(
-                                        color: AppTheme.error)),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text(
+                                  'إيقاف',
+                                  style: TextStyle(color: AppTheme.error),
+                                ),
                               ),
                             ],
                           ),
                         );
                         if (confirmed == true && context.mounted) {
-                          context
-                              .read<RecurringCubit>()
-                              .stopRule(rule);
+                          context.read<RecurringCubit>().stopRule(rule);
                         }
                       },
                       child: const Padding(
@@ -589,7 +602,10 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-            fontSize: 10, color: color, fontWeight: FontWeight.w600),
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -600,24 +616,27 @@ class _Badge extends StatelessWidget {
 class _SummaryRow extends StatelessWidget {
   final double totalIncome;
   final double totalExpense;
-  const _SummaryRow(
-      {required this.totalIncome, required this.totalExpense});
+  const _SummaryRow({required this.totalIncome, required this.totalExpense});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-            child: _SummaryCard(
-                label: 'إجمالي الدخل',
-                amount: totalIncome,
-                isIncome: true)),
+          child: _SummaryCard(
+            label: 'إجمالي الدخل',
+            amount: totalIncome,
+            isIncome: true,
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
-            child: _SummaryCard(
-                label: 'إجمالي المصروف',
-                amount: totalExpense,
-                isIncome: false)),
+          child: _SummaryCard(
+            label: 'إجمالي المصروف',
+            amount: totalExpense,
+            isIncome: false,
+          ),
+        ),
       ],
     );
   }
@@ -627,8 +646,11 @@ class _SummaryCard extends StatelessWidget {
   final String label;
   final double amount;
   final bool isIncome;
-  const _SummaryCard(
-      {required this.label, required this.amount, required this.isIncome});
+  const _SummaryCard({
+    required this.label,
+    required this.amount,
+    required this.isIncome,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -656,8 +678,11 @@ class _EmptyState extends StatelessWidget {
   final String message;
   final String sub;
   final IconData icon;
-  const _EmptyState(
-      {required this.message, required this.sub, required this.icon});
+  const _EmptyState({
+    required this.message,
+    required this.sub,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -670,12 +695,13 @@ class _EmptyState extends StatelessWidget {
             children: [
               Icon(icon, size: 64, color: AppTheme.textDisabled),
               const SizedBox(height: 16),
-              Text(message,
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(message, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              Text(sub,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  textAlign: TextAlign.center),
+              Text(
+                sub,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -734,8 +760,11 @@ class _FilterBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            const Icon(Icons.filter_list_rounded,
-                size: 15, color: AppTheme.primary),
+            const Icon(
+              Icons.filter_list_rounded,
+              size: 15,
+              color: AppTheme.primary,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -756,8 +785,11 @@ class _FilterBanner extends StatelessWidget {
                   color: AppTheme.primary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child:
-                    const Icon(Icons.close, size: 13, color: AppTheme.primary),
+                child: const Icon(
+                  Icons.close,
+                  size: 13,
+                  color: AppTheme.primary,
+                ),
               ),
             ),
           ],

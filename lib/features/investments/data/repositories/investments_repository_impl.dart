@@ -116,6 +116,16 @@ class InvestmentsRepositoryImpl implements InvestmentsRepository {
     }
   }
 
+  @override
+  Future<void> updateAssetPrice(String assetId, double price) async {
+    final asset = _assetBox.get(assetId);
+    if (asset != null) {
+      asset.currentValuePerUnit = price;
+      asset.lastPriceUpdateMs = DateTime.now().millisecondsSinceEpoch;
+      await asset.save();
+    }
+  }
+
   AssetEntity _toEntity(AssetModel m) => AssetEntity(
         id: m.id,
         name: m.name,

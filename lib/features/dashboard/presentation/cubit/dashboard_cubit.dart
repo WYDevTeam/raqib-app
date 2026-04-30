@@ -1,8 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/dashboard_widget_entity.dart';
+import '../../domain/usecases/delete_custom_widget_usecase.dart';
 import '../../domain/usecases/get_dashboard_summary_usecase.dart';
 import '../../domain/usecases/get_dashboard_widgets_usecase.dart';
+import '../../domain/usecases/save_custom_widget_usecase.dart';
 import '../../domain/usecases/update_dashboard_widgets_usecase.dart';
 import 'dashboard_state.dart';
 
@@ -10,9 +12,16 @@ class DashboardCubit extends Cubit<DashboardState> {
   final GetDashboardSummaryUseCase _getSummary;
   final GetDashboardWidgetsUseCase _getWidgets;
   final UpdateDashboardWidgetsUseCase _updateWidgets;
+  final SaveCustomWidgetUseCase _saveCustomWidget;
+  final DeleteCustomWidgetUseCase _deleteCustomWidget;
 
-  DashboardCubit(this._getSummary, this._getWidgets, this._updateWidgets)
-      : super(const DashboardInitial());
+  DashboardCubit(
+    this._getSummary,
+    this._getWidgets,
+    this._updateWidgets,
+    this._saveCustomWidget,
+    this._deleteCustomWidget,
+  ) : super(const DashboardInitial());
 
   Future<void> loadDashboard() async {
     emit(const DashboardLoading());
@@ -50,5 +59,15 @@ class DashboardCubit extends Cubit<DashboardState> {
         }
       },
     );
+  }
+
+  Future<void> saveCustomWidget(DashboardWidget widget) async {
+    await _saveCustomWidget(widget);
+    await loadDashboard();
+  }
+
+  Future<void> deleteCustomWidget(String id) async {
+    await _deleteCustomWidget(id);
+    await loadDashboard();
   }
 }

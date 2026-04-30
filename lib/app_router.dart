@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/di/injection.dart';
@@ -10,10 +11,12 @@ import 'features/dashboard/presentation/customize_dashboard_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/dashboard/presentation/formula_builder_screen.dart';
 import 'features/debts_amanah/presentation/add_debt_amanah_screen.dart';
+import 'features/debts_amanah/presentation/cubit/debts_cubit.dart';
 import 'features/debts_amanah/presentation/debts_amanah_screen.dart';
 import 'features/investments/presentation/add_investment_screen.dart';
 import 'features/investments/presentation/asset_details_screen.dart';
 import 'features/investments/presentation/investments_screen.dart';
+import 'features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'features/onboarding/presentation/initial_assets_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/settings/domain/usecases/is_onboarding_completed_usecase.dart';
@@ -27,8 +30,7 @@ import 'features/transactions/presentation/categories_management_screen.dart';
 import 'features/transactions/presentation/recurring_rules_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey =
-    GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -48,7 +50,13 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'initial-assets',
           parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const InitialAssetsScreen(),
+          builder: (context, state) {
+            final cubit = state.extra as OnboardingCubit?;
+            return BlocProvider.value(
+              value: cubit ?? sl<OnboardingCubit>(),
+              child: const InitialAssetsScreen(),
+            );
+          },
         ),
         GoRoute(
           path: 'import',
@@ -105,12 +113,10 @@ final GoRouter appRouter = GoRouter(
                       path: 'formula-builder',
                       parentNavigatorKey: _rootNavigatorKey,
                       builder: (context, state) {
-                        final extra =
-                            state.extra as Map<String, dynamic>?;
+                        final extra = state.extra as Map<String, dynamic>?;
                         return FormulaBuilderScreen(
                           initialTitle: extra?['title'] as String?,
-                          initialFormulaParts:
-                              extra?['formulaParts'] as List<String>?,
+                          initialFormulaJson: extra?['formulaJson'] as String?,
                         );
                       },
                     ),
@@ -119,8 +125,7 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'formula-builder',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) =>
-                      const FormulaBuilderScreen(),
+                  builder: (context, state) => const FormulaBuilderScreen(),
                 ),
                 GoRoute(
                   path: 'customize',
@@ -146,10 +151,8 @@ final GoRouter appRouter = GoRouter(
                   path: 'add',
                   parentNavigatorKey: _rootNavigatorKey,
                   builder: (context, state) {
-                    final transaction =
-                        state.extra as TransactionEntity?;
-                    return AddTransactionScreen(
-                        transaction: transaction);
+                    final transaction = state.extra as TransactionEntity?;
+                    return AddTransactionScreen(transaction: transaction);
                   },
                 ),
               ],
@@ -190,8 +193,13 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'add',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) =>
-                      const AddDebtAmanahScreen(),
+                  builder: (context, state) {
+                    final parentCubit = state.extra as DebtsCubit?;
+                    return BlocProvider.value(
+                      value: parentCubit ?? sl<DebtsCubit>(),
+                      child: const AddDebtAmanahScreen(),
+                    );
+                  },
                 ),
               ],
             ),

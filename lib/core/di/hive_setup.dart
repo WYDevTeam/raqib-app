@@ -49,6 +49,11 @@ abstract final class HiveSetup {
     await Hive.openBox<AssetTransactionModel>('asset_transactions');
     await Hive.openBox<DebtModel>('debts');
     await Hive.openBox<AmanahModel>('amanah');
+
+    if (migBox.get('budget_v2') != true) {
+      await Hive.deleteBoxFromDisk('budgets');
+      await migBox.put('budget_v2', true);
+    }
     await Hive.openBox<BudgetModel>('budgets');
     await Hive.openBox<DashboardWidgetModel>('dashboard_widgets');
     await Hive.openBox<AppSettingsModel>('settings');

@@ -8,6 +8,7 @@ class AmanahModel extends HiveObject {
   final int? expectedReturnDateMs;
   final String note;
   bool isReturned;
+  double returnedAmount;
 
   AmanahModel({
     required this.id,
@@ -17,7 +18,11 @@ class AmanahModel extends HiveObject {
     this.expectedReturnDateMs,
     this.note = '',
     this.isReturned = false,
+    this.returnedAmount = 0.0,
   });
+
+  double get remainingAmount => amount - returnedAmount;
+  double get progress => amount > 0 ? (returnedAmount / amount).clamp(0.0, 1.0) : 0.0;
 
   DateTime get receivedDate =>
       DateTime.fromMillisecondsSinceEpoch(receivedDateMs);
@@ -44,13 +49,14 @@ class AmanahModelAdapter extends TypeAdapter<AmanahModel> {
       expectedReturnDateMs: fields[4] as int?,
       note: fields[5] as String,
       isReturned: fields[6] as bool,
+      returnedAmount: fields[7] as double? ?? 0.0,
     );
   }
 
   @override
   void write(BinaryWriter writer, AmanahModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -64,6 +70,8 @@ class AmanahModelAdapter extends TypeAdapter<AmanahModel> {
       ..writeByte(5)
       ..write(obj.note)
       ..writeByte(6)
-      ..write(obj.isReturned);
+      ..write(obj.isReturned)
+      ..writeByte(7)
+      ..write(obj.returnedAmount);
   }
 }

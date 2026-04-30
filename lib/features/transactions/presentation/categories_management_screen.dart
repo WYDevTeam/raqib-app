@@ -56,6 +56,7 @@ class _CategoriesView extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'categories_add_fab',
         onPressed: () => _navigateToAdd(context),
         backgroundColor: AppTheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
@@ -80,13 +81,21 @@ class _CategoriesList extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.category_outlined, size: 64, color: AppTheme.textDisabled),
+            Icon(
+              Icons.category_outlined,
+              size: 64,
+              color: AppTheme.textDisabled,
+            ),
             SizedBox(height: 16),
-            Text('لا توجد فئات',
-                style: TextStyle(color: AppTheme.textSecondary)),
+            Text(
+              'لا توجد فئات',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
             SizedBox(height: 8),
-            Text('اضغط + لإضافة فئة جديدة',
-                style: TextStyle(color: AppTheme.textDisabled, fontSize: 13)),
+            Text(
+              'اضغط + لإضافة فئة جديدة',
+              style: TextStyle(color: AppTheme.textDisabled, fontSize: 13),
+            ),
           ],
         ),
       );
@@ -128,8 +137,7 @@ class _CategoryTile extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  IconData(category.iconCodePoint,
-                      fontFamily: 'MaterialIcons'),
+                  IconData(category.iconCodePoint, fontFamily: 'MaterialIcons'),
                   size: 20,
                   color: color,
                 ),
@@ -140,8 +148,10 @@ class _CategoryTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(category.name,
-                      style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    category.name,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   Text(
                     category.type.arabicLabel,
                     style: TextStyle(fontSize: 12, color: color),
@@ -150,8 +160,7 @@ class _CategoryTile extends StatelessWidget {
               ),
             ),
             IconButton(
-              icon:
-                  const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+              icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
               onPressed: () => _showOptions(context),
             ),
           ],
@@ -199,8 +208,10 @@ class _CategoryTile extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppTheme.error),
-              title: const Text('حذف الفئة',
-                  style: TextStyle(color: AppTheme.error)),
+              title: const Text(
+                'حذف الفئة',
+                style: TextStyle(color: AppTheme.error),
+              ),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 // Wait for sheet close animation before showing dialog.
@@ -216,8 +227,7 @@ class _CategoryTile extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(
-      BuildContext context, CategoryCubit cubit) async {
+  Future<void> _confirmDelete(BuildContext context, CategoryCubit cubit) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -225,12 +235,12 @@ class _CategoryTile extends StatelessWidget {
         content: Text('هل تريد حذف فئة "${category.name}"؟'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('حذف', style: TextStyle(color: AppTheme.error)),
+            child: const Text('حذف', style: TextStyle(color: AppTheme.error)),
           ),
         ],
       ),

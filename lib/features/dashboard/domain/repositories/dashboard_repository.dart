@@ -7,4 +7,6 @@ abstract class DashboardRepository {
   Future<Either<AppFailure, DashboardSummary>> getDashboardSummary();
   Future<Either<AppFailure, List<DashboardWidget>>> getWidgets();
   Future<Either<AppFailure, void>> updateWidgets(List<DashboardWidget> widgets);
+  Future<Either<AppFailure, void>> saveCustomWidget(DashboardWidget widget);
+  Future<Either<AppFailure, void>> deleteCustomWidget(String id);
 }
