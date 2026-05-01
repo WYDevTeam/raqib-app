@@ -30,7 +30,9 @@ class FormulaService {
 
       final expression = expressionParts.join(' ');
       final exp = Parser().parse(expression);
-      return exp.evaluate(EvaluationType.REAL, ContextModel()) as double;
+      final result = exp.evaluate(EvaluationType.REAL, ContextModel()) as double;
+      if (result.isNaN || result.isInfinite) return 0.0;
+      return result;
     } catch (_) {
       return 0;
     }
@@ -39,6 +41,10 @@ class FormulaService {
   double _getVariableValue(String key) {
     final pnl = _calc.getMonthlyPnL(DateTime.now());
     final assets = _calc.getAssetsByType();
+    final realIncome = pnl.income;
+    final realExpenses = pnl.expenses;
+    final totalWealth = _calc.getNetWorthTotal();
+    
     return switch (key) {
       'liquid_cash' => _calc.getLiquidCash(),
       'gold_value' => assets['gold'] ?? 0,
@@ -48,6 +54,8 @@ class FormulaService {
       'real_income' => pnl.income,
       'real_expenses' => pnl.expenses,
       'real_pnl' => pnl.income - pnl.expenses,
+      'spending_rate' => realIncome > 0 ? realExpenses / realIncome : 0.0,
+      'investment_ratio' => totalWealth > 0 ? _calc.getTotalAssetsValue() / totalWealth : 0.0,
       'realized_pnl' => _calc.getTotalRealizedPnL(),
       'unrealized_pnl' => _calc.getTotalUnrealizedPnL(),
       'debts_owed' => _calc.getTotalDebtsOwed(),

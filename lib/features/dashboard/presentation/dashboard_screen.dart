@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:raqib/features/dashboard/domain/entities/dashboard_widget_entity.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
@@ -52,9 +53,7 @@ class _DashboardViewState extends State<_DashboardView> {
     if (formulaJson == null || formulaJson.isEmpty) return '';
     try {
       final elements = jsonDecode(formulaJson) as List<dynamic>;
-      return elements
-          .map((e) => e['label'] as String? ?? '')
-          .join(' ');
+      return elements.map((e) => e['label'] as String? ?? '').join(' ');
     } catch (_) {
       return '';
     }
@@ -72,8 +71,10 @@ class _DashboardViewState extends State<_DashboardView> {
             actions: [
               TextButton.icon(
                 onPressed: () => context.push('/subscription'),
-                icon: const Icon(Icons.workspace_premium,
-                    color: Color(0xFFFFD700)),
+                icon: const Icon(
+                  Icons.workspace_premium,
+                  color: Color(0xFFFFD700),
+                ),
                 label: const Text(
                   'Pro',
                   style: TextStyle(
@@ -82,8 +83,9 @@ class _DashboardViewState extends State<_DashboardView> {
                   ),
                 ),
                 style: TextButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xFFFFD700).withValues(alpha: 0.1),
+                  backgroundColor: const Color(
+                    0xFFFFD700,
+                  ).withValues(alpha: 0.1),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -107,50 +109,6 @@ class _DashboardViewState extends State<_DashboardView> {
                       _buildNetWorthCard(context, loaded),
                       const SizedBox(height: 24),
                       _buildOverviewSection(context, loaded),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'بطاقات مخصصة',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          TextButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text('إضافة معادلة'),
-                            onPressed: _showFormulaBuilder,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (loaded != null)
-                        ...loaded.widgets
-                            .where((w) => w.isCustomFormula)
-                            .map((w) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _buildCustomFormulaCard(
-                                    context,
-                                    w.title,
-                                    _formatWidgetValue(
-                                      loaded.summary.customWidgetValues[w.id] ?? 0,
-                                      w.displayFormat,
-                                    ),
-                                    _formulaDisplayText(w.formulaJson),
-                                  ),
-                                )),
-                      if (loaded != null &&
-                          loaded.widgets.where((w) => w.isCustomFormula).isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              'أضف معادلة مخصصة لعرضها هنا',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -159,8 +117,7 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  Widget _buildNetWorthCard(
-      BuildContext context, DashboardLoaded? state) {
+  Widget _buildNetWorthCard(BuildContext context, DashboardLoaded? state) {
     final nw = state?.displayedNetWorth ?? 0;
     final isConservative = state?.isConservativeMode ?? true;
     final debtHeld = state?.summary.totalDebtsOwed ?? 0;
@@ -191,12 +148,14 @@ class _DashboardViewState extends State<_DashboardView> {
               Text(
                 'صافي الثروة الحقيقي',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -206,8 +165,7 @@ class _DashboardViewState extends State<_DashboardView> {
                   children: [
                     Text(
                       isConservative ? 'متحفظ' : 'كلي',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 12),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                     const SizedBox(width: 4),
                     Switch(
@@ -218,8 +176,7 @@ class _DashboardViewState extends State<_DashboardView> {
                       activeThumbColor: Colors.white,
                       activeTrackColor: AppTheme.secondary,
                       inactiveThumbColor: Colors.white,
-                      inactiveTrackColor:
-                          Colors.white.withValues(alpha: 0.3),
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
                     ),
                   ],
                 ),
@@ -229,10 +186,9 @@ class _DashboardViewState extends State<_DashboardView> {
           const SizedBox(height: 8),
           Text(
             state == null ? '---' : _fmt(nw),
-            style: Theme.of(context)
-                .textTheme
-                .displayMedium
-                ?.copyWith(color: Colors.white),
+            style: Theme.of(
+              context,
+            ).textTheme.displayMedium?.copyWith(color: Colors.white),
           ),
           const SizedBox(height: 16),
           Row(
@@ -261,105 +217,193 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  Widget _buildOverviewSection(
-      BuildContext context, DashboardLoaded? state) {
+  Widget _buildOverviewSection(BuildContext context, DashboardLoaded? state) {
     final summary = state?.summary;
     final widgets = state?.visibleWidgets ?? [];
     final idSet = {for (final w in widgets) w.id};
 
+    final allWidgets = state?.widgets ?? [];
+
     final Map<String, Widget Function(BuildContext)> widgetMap = {
       'الكاش الفعلي': (ctx) => _buildSummaryCard(
-            ctx,
-            'الكاش الفعلي',
-            summary == null ? '---' : _fmt(summary.liquidCash),
-            Icons.attach_money,
-            AppTheme.primary,
-          ),
+        ctx,
+        'الكاش الفعلي',
+        summary == null ? '---' : _fmt(summary.liquidCash),
+        Icons.attach_money,
+        AppTheme.primary,
+      ),
       'الربح الحقيقي (P&L)': (ctx) => _buildSummaryCard(
-            ctx,
-            'الربح الحقيقي (P&L)',
-            summary == null
-                ? '---'
-                : '${summary.realPnLThisMonth >= 0 ? '+' : ''}${_fmt(summary.realPnLThisMonth)}',
-            Icons.trending_up,
-            summary != null && summary.realPnLThisMonth >= 0
-                ? AppTheme.secondary
-                : AppTheme.error,
-          ),
-      'إجمالي المعادن': (ctx) => _buildSummaryCard(
-            ctx,
-            'إجمالي المعادن',
-            summary == null
-                ? '---'
-                : _fmt(summary.goldValue + summary.silverValue),
-            Icons.diamond,
-            Colors.amber,
-          ),
+        ctx,
+        'الربح الحقيقي (P&L)',
+        summary == null
+            ? '---'
+            : '${summary.realPnLThisMonth >= 0 ? '+' : ''}${_fmt(summary.realPnLThisMonth)}',
+        Icons.trending_up,
+        summary != null && summary.realPnLThisMonth >= 0
+            ? AppTheme.secondary
+            : AppTheme.error,
+      ),
+      'إجمالي الاستثمارات': (ctx) => _buildSummaryCard(
+        ctx,
+        'إجمالي الاستثمارات',
+        summary == null ? '---' : _fmt(summary.totalAssetsValue),
+        Icons.account_balance_wallet,
+        Colors.amber,
+      ),
       'أمانات عندي': (ctx) => _buildSummaryCard(
-            ctx,
-            'أمانات عندي',
-            summary == null ? '---' : _fmt(summary.totalAmanah),
-            Icons.lock_outline,
-            AppTheme.error,
-          ),
+        ctx,
+        'أمانات عندي',
+        summary == null ? '---' : _fmt(summary.totalAmanah),
+        Icons.lock_outline,
+        AppTheme.error,
+      ),
       'الديون المستحقة': (ctx) => _buildSummaryCard(
-            ctx,
-            'الديون المستحقة',
-            summary == null ? '---' : _fmt(summary.totalDebtsOwed),
-            Icons.money_off,
-            AppTheme.warning,
-          ),
+        ctx,
+        'الديون المستحقة',
+        summary == null ? '---' : _fmt(summary.totalDebtsOwed),
+        Icons.money_off,
+        AppTheme.warning,
+      ),
+      'معدل الإنفاق': (ctx) => _buildSummaryCard(
+        ctx,
+        'معدل الإنفاق',
+        summary == null
+            ? '---'
+            : '${NumberFormat('#,##0.#').format(summary.spendingRate * 100)}%',
+        Icons.show_chart,
+        AppTheme.primary,
+      ),
+      'نسبة الاستثمار': (ctx) => _buildSummaryCard(
+        ctx,
+        'نسبة الاستثمار',
+        summary == null
+            ? '---'
+            : '${NumberFormat('#,##0.#').format(summary.investmentRatio * 100)}%',
+        Icons.pie_chart,
+        AppTheme.secondary,
+      ),
     };
 
-    final overviewItems = <String, bool>{
+    // Custom formulas live in the grid — add them to widgetMap
+    for (final w in allWidgets.where((w) => w.isCustomFormula)) {
+      widgetMap[w.title] = (ctx) => _buildCustomFormulaGridCard(
+        ctx,
+        w.title,
+        _formatWidgetValue(
+          summary?.customWidgetValues[w.id] ?? 0,
+          w.displayFormat,
+        ),
+        _formulaDisplayText(w.formulaJson),
+      );
+    }
+
+    final gridItems = <String, bool>{
       'الكاش الفعلي': idSet.contains('cash'),
       'الربح الحقيقي (P&L)': idSet.contains('pnl'),
-      'إجمالي المعادن': idSet.contains('assets'),
+      'إجمالي الاستثمارات': idSet.contains('assets'),
       'أمانات عندي': idSet.contains('reminders'),
       'الديون المستحقة': idSet.contains('debts'),
+      'معدل الإنفاق': idSet.contains('spending'),
+      'نسبة الاستثمار': idSet.contains('investment'),
     };
+
+    final editItems = gridItems;
 
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('نظرة عامة',
-                style: Theme.of(context).textTheme.titleLarge),
-            IconButton(
-              icon: const Icon(Icons.edit_note,
-                  color: AppTheme.primary),
-              onPressed: () async {
-                final cubit = context.read<DashboardCubit>();
-                final result =
-                    await showModalBottomSheet<Map<String, bool>>(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => EditOverviewSheet(
-                      initialItems: overviewItems),
-                );
-                if (result != null) {
-                  // Map result back to DashboardWidget list
-                  final current = cubit.state;
-                  if (current is! DashboardLoaded) return;
-                  final updated = current.widgets.map((w) {
-                    return switch (w.id) {
-                      'cash' => w.copyWith(isVisible: result['الكاش الفعلي'] ?? true),
-                      'pnl' => w.copyWith(isVisible: result['الربح الحقيقي (P&L)'] ?? true),
-                      'assets' => w.copyWith(isVisible: result['إجمالي المعادن'] ?? true),
-                      'reminders' => w.copyWith(isVisible: result['أمانات عندي'] ?? true),
-                      'debts' => w.copyWith(isVisible: result['الديون المستحقة'] ?? true),
-                      _ => w,
-                    };
-                  }).toList();
-                  await cubit.saveWidgets(updated);
-                }
-              },
+            Text('نظرة عامة', style: Theme.of(context).textTheme.titleLarge),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_note, color: AppTheme.primary),
+                  onPressed: () async {
+                    final cubit = context.read<DashboardCubit>();
+                    final result =
+                        await showModalBottomSheet<Map<String, bool>>(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) =>
+                              EditOverviewSheet(initialItems: editItems),
+                        );
+                    if (result != null) {
+                      final current = cubit.state;
+                      if (current is! DashboardLoaded) return;
+                      final updated = current.widgets.map((w) {
+                        if (w.isCustomFormula) {
+                          return w.copyWith(isVisible: result[w.title] ?? true);
+                        }
+                        return switch (w.id) {
+                          'cash' => w.copyWith(
+                            isVisible: result['الكاش الفعلي'] ?? true,
+                          ),
+                          'pnl' => w.copyWith(
+                            isVisible: result['الربح الحقيقي (P&L)'] ?? true,
+                          ),
+                          'assets' => w.copyWith(
+                            isVisible: result['إجمالي الاستثمارات'] ?? true,
+                          ),
+                          'reminders' => w.copyWith(
+                            isVisible: result['أمانات عندي'] ?? true,
+                          ),
+                          'debts' => w.copyWith(
+                            isVisible: result['الديون المستحقة'] ?? true,
+                          ),
+                          'spending' => w.copyWith(
+                            isVisible: result['معدل الإنفاق'] ?? true,
+                          ),
+                          'investment' => w.copyWith(
+                            isVisible: result['نسبة الاستثمار'] ?? true,
+                          ),
+                          _ => w,
+                        };
+                      }).toList();
+                      await cubit.saveWidgets(updated);
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
         const SizedBox(height: 16),
-        _buildDynamicOverviewGrid(context, overviewItems, widgetMap),
+        _buildDynamicOverviewGrid(context, gridItems, widgetMap),
+        const SizedBox(height: 32),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'المعادلات المخصصة',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('إضافة معادلة'),
+              onPressed: _showFormulaBuilder,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (allWidgets.any((w) => w.isCustomFormula && w.isVisible)) ...[
+          ...allWidgets
+              .where((w) => w.isCustomFormula && w.isVisible)
+              .map(
+                (w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildCustomFormulaCard(
+                    context,
+                    w,
+                    _formatWidgetValue(
+                      summary?.customWidgetValues[w.id] ?? 0,
+                      w.displayFormat,
+                    ),
+                    _formulaDisplayText(w.formulaJson),
+                  ),
+                ),
+              ),
+        ],
       ],
     );
   }
@@ -426,9 +470,9 @@ class _DashboardViewState extends State<_DashboardView> {
           Text(
             amount,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 4),
           Text(title, style: Theme.of(context).textTheme.bodySmall),
@@ -437,9 +481,54 @@ class _DashboardViewState extends State<_DashboardView> {
     );
   }
 
-  Widget _buildCustomFormulaCard(
+  Widget _buildCustomFormulaGridCard(
     BuildContext context,
     String title,
+    String amount,
+    String formula,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.functions, color: AppTheme.primary, size: 24),
+          const SizedBox(height: 12),
+          Text(
+            amount,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppTheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(title, style: Theme.of(context).textTheme.bodySmall),
+          if (formula.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              formula,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary,
+                fontSize: 10,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomFormulaCard(
+    BuildContext context,
+    DashboardWidget widget,
     String amount,
     String formula,
   ) {
@@ -448,8 +537,7 @@ class _DashboardViewState extends State<_DashboardView> {
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppTheme.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -458,26 +546,51 @@ class _DashboardViewState extends State<_DashboardView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style:
-                        Theme.of(context).textTheme.titleMedium),
+                Row(
+                  children: [
+                    Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () async {
+                        await context.push(
+                          '/dashboard/formula-builder',
+                          extra: {
+                            'title': widget.title,
+                            'formulaJson': widget.formulaJson,
+                          },
+                        );
+                        if (context.mounted) {
+                          context.read<DashboardCubit>().refresh();
+                        }
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
                   formula,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(fontFamily: 'monospace'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
                 ),
               ],
             ),
           ),
           Text(
             amount,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(color: AppTheme.primary),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: AppTheme.primary),
           ),
         ],
       ),

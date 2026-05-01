@@ -88,9 +88,11 @@ abstract final class HiveSetup {
         DashboardWidgetModel(id: 'net_worth', title: 'صافي الثروة', formulaExpression: '', isVisible: true, sortOrder: 0),
         DashboardWidgetModel(id: 'cash', title: 'الكاش الفعلي', formulaExpression: '', isVisible: true, sortOrder: 1),
         DashboardWidgetModel(id: 'pnl', title: 'الربح والخسارة', formulaExpression: '', isVisible: true, sortOrder: 2),
-        DashboardWidgetModel(id: 'assets', title: 'أصولي', formulaExpression: '', isVisible: true, sortOrder: 3),
+        DashboardWidgetModel(id: 'assets', title: 'إجمالي الاستثمارات', formulaExpression: '', isVisible: true, sortOrder: 3),
         DashboardWidgetModel(id: 'reminders', title: 'تذكيرات', formulaExpression: '', isVisible: true, sortOrder: 4),
         DashboardWidgetModel(id: 'debts', title: 'الديون المستحقة', formulaExpression: '', isVisible: true, sortOrder: 5),
+        DashboardWidgetModel(id: 'spending', title: 'معدل الإنفاق', formulaExpression: '', isVisible: true, sortOrder: 6),
+        DashboardWidgetModel(id: 'investment', title: 'نسبة الاستثمار', formulaExpression: '', isVisible: true, sortOrder: 7),
       ];
       for (final w in defaults) {
         await widgetsBox.put(w.id, w);
@@ -100,6 +102,8 @@ abstract final class HiveSetup {
       final missing = [
         DashboardWidgetModel(id: 'cash', title: 'الكاش الفعلي', formulaExpression: '', isVisible: true, sortOrder: 1),
         DashboardWidgetModel(id: 'debts', title: 'الديون المستحقة', formulaExpression: '', isVisible: true, sortOrder: 5),
+        DashboardWidgetModel(id: 'spending', title: 'معدل الإنفاق', formulaExpression: '', isVisible: true, sortOrder: 6),
+        DashboardWidgetModel(id: 'investment', title: 'نسبة الاستثمار', formulaExpression: '', isVisible: true, sortOrder: 7),
       ];
       for (final w in missing) {
         if (!widgetsBox.containsKey(w.id)) {

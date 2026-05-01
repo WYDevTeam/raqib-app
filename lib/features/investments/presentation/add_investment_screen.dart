@@ -68,6 +68,7 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
   _CoinInfo? _selectedCoin; // null = custom
   DateTime _selectedDate = DateTime.now();
   bool _isLoadingPrice = false;
+  final _typeFieldKey = GlobalKey<FormFieldState<String>>();
 
   static const _metalTypes = {'gold', 'silver', 'platinum', 'palladium'};
 
@@ -80,6 +81,15 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
     _priceController.dispose();
     super.dispose();
   }
+
+  String get _autoName => switch (_selectedType) {
+    'gold' => 'ذهب',
+    'silver' => 'فضة',
+    'platinum' => 'بلاتين',
+    'palladium' => 'بلاديوم',
+    'crypto' => _selectedCoin?.name ?? _symbolController.text.trim(),
+    _ => _nameController.text.trim(),
+  };
 
   String get _autoSymbol => switch (_selectedType) {
     'gold' => 'XAU',
@@ -188,7 +198,7 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
     final price = double.parse(_priceController.text.trim());
 
     await context.read<InvestmentsCubit>().createAsset(
-      name: _nameController.text.trim(),
+      name: _autoName,
       type: _selectedType,
       symbol: _autoSymbol,
       unit: _autoUnit,
@@ -216,6 +226,7 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
             children: [
               // ── Type ──────────────────────────────────────────────────
               DropdownButtonFormField<String>(
+                key: _typeFieldKey,
                 value: _selectedType,
                 decoration: const InputDecoration(labelText: 'نوع الأصل'),
                 items: [
@@ -244,6 +255,8 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
                 onChanged: (v) {
                   if (v == null) return;
                   if (_kProTypes.contains(v)) {
+                    // Revert FormField internal state back to current selection
+                    _typeFieldKey.currentState?.didChange(_selectedType);
                     context.push('/subscription');
                     return;
                   }
@@ -258,17 +271,19 @@ class _AddInvestmentViewState extends State<_AddInvestmentView> {
               ),
               const SizedBox(height: 16),
 
-              // ── Name ──────────────────────────────────────────────────
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'الاسم',
-                  hintText: 'مثال: سبيكة ذهب، BTC',
+              // ── Name (other only) ─────────────────────────────────────
+              if (_selectedType == 'other') ...[
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'الاسم',
+                    hintText: 'مثال: عقار، سيارة',
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'أدخل الاسم' : null,
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'أدخل الاسم' : null,
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
 
               // ── Crypto picker ─────────────────────────────────────────
               if (showCryptoPicker) ...[

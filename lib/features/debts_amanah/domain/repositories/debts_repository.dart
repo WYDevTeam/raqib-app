@@ -8,9 +8,11 @@ abstract class DebtsRepository {
   Future<Either<AppFailure, void>> addDebt(DebtModel debt);
   Future<Either<AppFailure, void>> recordDebtPayment(String debtId, double amount);
   Future<Either<AppFailure, void>> settleDebt(String debtId);
+  Future<Either<AppFailure, void>> updateDebt(DebtModel debt);
 
   Future<Either<AppFailure, List<AmanahModel>>> getAmanah();
   Future<Either<AppFailure, void>> addAmanah(AmanahModel amanah);
   Future<Either<AppFailure, void>> recordAmanahReturn(String amanahId, double amount);
   Future<Either<AppFailure, void>> settleAmanah(String amanahId);
+  Future<Either<AppFailure, void>> updateAmanah(AmanahModel amanah);
 }

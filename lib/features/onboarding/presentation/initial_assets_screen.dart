@@ -17,6 +17,28 @@ class _PersonEntry {
   }
 }
 
+class _MetalEntry {
+  final TextEditingController qtyCtrl = TextEditingController();
+  final TextEditingController costCtrl = TextEditingController();
+  void dispose() {
+    qtyCtrl.dispose();
+    costCtrl.dispose();
+  }
+}
+
+class _CryptoEntry {
+  final TextEditingController nameCtrl = TextEditingController(text: 'Bitcoin');
+  final TextEditingController symbolCtrl = TextEditingController(text: 'BTC');
+  final TextEditingController qtyCtrl = TextEditingController();
+  final TextEditingController costCtrl = TextEditingController();
+  void dispose() {
+    nameCtrl.dispose();
+    symbolCtrl.dispose();
+    qtyCtrl.dispose();
+    costCtrl.dispose();
+  }
+}
+
 class _CustomAsset {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController valueCtrl = TextEditingController();
@@ -45,16 +67,11 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
 
   // Step 1 — Assets
   bool _goldOn = false;
-  final _goldQtyCtrl = TextEditingController();
-  final _goldCostCtrl = TextEditingController();
+  final List<_MetalEntry> _goldEntries = [_MetalEntry()];
   bool _silverOn = false;
-  final _silverQtyCtrl = TextEditingController();
-  final _silverCostCtrl = TextEditingController();
+  final List<_MetalEntry> _silverEntries = [_MetalEntry()];
   bool _cryptoOn = false;
-  final _cryptoNameCtrl = TextEditingController(text: 'Bitcoin');
-  final _cryptoSymbolCtrl = TextEditingController(text: 'BTC');
-  final _cryptoQtyCtrl = TextEditingController();
-  final _cryptoCostCtrl = TextEditingController();
+  final List<_CryptoEntry> _cryptoEntries = [_CryptoEntry()];
   final List<_CustomAsset> _customAssets = [];
 
   // Step 2 — Amanah
@@ -67,14 +84,9 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
   void dispose() {
     _pageController.dispose();
     _cashCtrl.dispose();
-    _goldQtyCtrl.dispose();
-    _goldCostCtrl.dispose();
-    _silverQtyCtrl.dispose();
-    _silverCostCtrl.dispose();
-    _cryptoNameCtrl.dispose();
-    _cryptoSymbolCtrl.dispose();
-    _cryptoQtyCtrl.dispose();
-    _cryptoCostCtrl.dispose();
+    for (final e in _goldEntries) e.dispose();
+    for (final e in _silverEntries) e.dispose();
+    for (final e in _cryptoEntries) e.dispose();
     for (final a in _customAssets) a.dispose();
     for (final e in _amanahList) e.dispose();
     for (final e in _debtsList) e.dispose();
@@ -102,46 +114,82 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
     }
   }
 
+  void _skip() {
+    setState(() {
+      if (_step == 1) {
+        _goldOn = false;
+        _silverOn = false;
+        _cryptoOn = false;
+        _customAssets.clear();
+      } else if (_step == 2) {
+        _amanahList.clear();
+      } else if (_step == 3) {
+        _debtsList.clear();
+      }
+    });
+
+    if (_isLastStep) {
+      _finish();
+    } else {
+      _next();
+    }
+  }
+
   Future<void> _finish() async {
     final cubit = context.read<OnboardingCubit>();
 
     final assets = <OnboardingAsset>[];
 
-    if (_goldOn && _parseCtrl(_goldQtyCtrl) > 0) {
-      assets.add(OnboardingAsset(
-        name: 'ذهب',
-        type: 'gold',
-        symbol: 'XAU',
-        unit: 'غرام',
-        quantity: _parseCtrl(_goldQtyCtrl),
-        costPerUnit: _parseCtrl(_goldCostCtrl),
-      ));
+    if (_goldOn) {
+      for (final entry in _goldEntries) {
+        final qty = _parseCtrl(entry.qtyCtrl);
+        if (qty > 0) {
+          assets.add(OnboardingAsset(
+            name: 'ذهب',
+            type: 'gold',
+            symbol: 'XAU',
+            unit: 'غرام',
+            quantity: qty,
+            costPerUnit: _parseCtrl(entry.costCtrl),
+          ));
+        }
+      }
     }
-    if (_silverOn && _parseCtrl(_silverQtyCtrl) > 0) {
-      assets.add(OnboardingAsset(
-        name: 'فضة',
-        type: 'silver',
-        symbol: 'XAG',
-        unit: 'غرام',
-        quantity: _parseCtrl(_silverQtyCtrl),
-        costPerUnit: _parseCtrl(_silverCostCtrl),
-      ));
+    if (_silverOn) {
+      for (final entry in _silverEntries) {
+        final qty = _parseCtrl(entry.qtyCtrl);
+        if (qty > 0) {
+          assets.add(OnboardingAsset(
+            name: 'فضة',
+            type: 'silver',
+            symbol: 'XAG',
+            unit: 'غرام',
+            quantity: qty,
+            costPerUnit: _parseCtrl(entry.costCtrl),
+          ));
+        }
+      }
     }
-    if (_cryptoOn && _parseCtrl(_cryptoQtyCtrl) > 0) {
-      final name = _cryptoNameCtrl.text.trim().isEmpty
-          ? 'كريبتو'
-          : _cryptoNameCtrl.text.trim();
-      final symbol = _cryptoSymbolCtrl.text.trim().toUpperCase().isEmpty
-          ? 'CRYPTO'
-          : _cryptoSymbolCtrl.text.trim().toUpperCase();
-      assets.add(OnboardingAsset(
-        name: name,
-        type: 'crypto',
-        symbol: '${symbol}USDT',
-        unit: symbol,
-        quantity: _parseCtrl(_cryptoQtyCtrl),
-        costPerUnit: _parseCtrl(_cryptoCostCtrl),
-      ));
+    if (_cryptoOn) {
+      for (final entry in _cryptoEntries) {
+        final qty = _parseCtrl(entry.qtyCtrl);
+        if (qty > 0) {
+          final name = entry.nameCtrl.text.trim().isEmpty
+              ? 'كريبتو'
+              : entry.nameCtrl.text.trim();
+          final symbol = entry.symbolCtrl.text.trim().toUpperCase().isEmpty
+              ? 'CRYPTO'
+              : entry.symbolCtrl.text.trim().toUpperCase();
+          assets.add(OnboardingAsset(
+            name: name,
+            type: 'crypto',
+            symbol: '${symbol}USDT',
+            unit: symbol,
+            quantity: qty,
+            costPerUnit: _parseCtrl(entry.costCtrl),
+          ));
+        }
+      }
     }
     for (final ca in _customAssets) {
       final name = ca.nameCtrl.text.trim();
@@ -216,13 +264,37 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
                 ),
                 title: Text(_stepTitle),
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(6),
-                  child: LinearProgressIndicator(
-                    value: (_step + 1) / _totalSteps,
-                    backgroundColor:
-                        AppTheme.primary.withValues(alpha: 0.15),
-                    valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                    minHeight: 4,
+                  preferredSize: const Size.fromHeight(16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                    child: Row(
+                      children: List.generate(_totalSteps, (index) {
+                        final isActive = index <= _step;
+                        return Expanded(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? AppTheme.primary
+                                  : AppTheme.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: AppTheme.primary.withValues(alpha: 0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      )
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
                   ),
                 ),
               ),
@@ -234,18 +306,28 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
                   _StepAssets(
                     goldOn: _goldOn,
                     onGoldToggle: (v) => setState(() => _goldOn = v),
-                    goldQtyCtrl: _goldQtyCtrl,
-                    goldCostCtrl: _goldCostCtrl,
+                    goldEntries: _goldEntries,
+                    onAddGold: () => setState(() => _goldEntries.add(_MetalEntry())),
+                    onRemoveGold: (i) => setState(() {
+                      _goldEntries[i].dispose();
+                      _goldEntries.removeAt(i);
+                    }),
                     silverOn: _silverOn,
                     onSilverToggle: (v) => setState(() => _silverOn = v),
-                    silverQtyCtrl: _silverQtyCtrl,
-                    silverCostCtrl: _silverCostCtrl,
+                    silverEntries: _silverEntries,
+                    onAddSilver: () => setState(() => _silverEntries.add(_MetalEntry())),
+                    onRemoveSilver: (i) => setState(() {
+                      _silverEntries[i].dispose();
+                      _silverEntries.removeAt(i);
+                    }),
                     cryptoOn: _cryptoOn,
                     onCryptoToggle: (v) => setState(() => _cryptoOn = v),
-                    cryptoNameCtrl: _cryptoNameCtrl,
-                    cryptoSymbolCtrl: _cryptoSymbolCtrl,
-                    cryptoQtyCtrl: _cryptoQtyCtrl,
-                    cryptoCostCtrl: _cryptoCostCtrl,
+                    cryptoEntries: _cryptoEntries,
+                    onAddCrypto: () => setState(() => _cryptoEntries.add(_CryptoEntry())),
+                    onRemoveCrypto: (i) => setState(() {
+                      _cryptoEntries[i].dispose();
+                      _cryptoEntries.removeAt(i);
+                    }),
                     customAssets: _customAssets,
                     onAddCustom: () => setState(() =>
                         _customAssets.add(_CustomAsset())),
@@ -288,7 +370,7 @@ class _InitialAssetsScreenState extends State<InitialAssetsScreen> {
                       if (_step > 0) ...[
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: loading ? null : _next,
+                            onPressed: loading ? null : _skip,
                             child: const Text('تخطى'),
                           ),
                         ),
@@ -382,14 +464,19 @@ class _StepCash extends StatelessWidget {
 class _StepAssets extends StatelessWidget {
   final bool goldOn;
   final ValueChanged<bool> onGoldToggle;
-  final TextEditingController goldQtyCtrl, goldCostCtrl;
+  final List<_MetalEntry> goldEntries;
+  final VoidCallback onAddGold;
+  final ValueChanged<int> onRemoveGold;
   final bool silverOn;
   final ValueChanged<bool> onSilverToggle;
-  final TextEditingController silverQtyCtrl, silverCostCtrl;
+  final List<_MetalEntry> silverEntries;
+  final VoidCallback onAddSilver;
+  final ValueChanged<int> onRemoveSilver;
   final bool cryptoOn;
   final ValueChanged<bool> onCryptoToggle;
-  final TextEditingController cryptoNameCtrl, cryptoSymbolCtrl,
-      cryptoQtyCtrl, cryptoCostCtrl;
+  final List<_CryptoEntry> cryptoEntries;
+  final VoidCallback onAddCrypto;
+  final ValueChanged<int> onRemoveCrypto;
   final List<_CustomAsset> customAssets;
   final VoidCallback onAddCustom;
   final ValueChanged<int> onRemoveCustom;
@@ -397,18 +484,19 @@ class _StepAssets extends StatelessWidget {
   const _StepAssets({
     required this.goldOn,
     required this.onGoldToggle,
-    required this.goldQtyCtrl,
-    required this.goldCostCtrl,
+    required this.goldEntries,
+    required this.onAddGold,
+    required this.onRemoveGold,
     required this.silverOn,
     required this.onSilverToggle,
-    required this.silverQtyCtrl,
-    required this.silverCostCtrl,
+    required this.silverEntries,
+    required this.onAddSilver,
+    required this.onRemoveSilver,
     required this.cryptoOn,
     required this.onCryptoToggle,
-    required this.cryptoNameCtrl,
-    required this.cryptoSymbolCtrl,
-    required this.cryptoQtyCtrl,
-    required this.cryptoCostCtrl,
+    required this.cryptoEntries,
+    required this.onAddCrypto,
+    required this.onRemoveCrypto,
     required this.customAssets,
     required this.onAddCustom,
     required this.onRemoveCustom,
@@ -426,54 +514,30 @@ class _StepAssets extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
-          _AssetSection(
+          _MetalSection(
             icon: '🟡',
             title: 'ذهب',
             enabled: goldOn,
             onToggle: onGoldToggle,
-            fields: [
-              _FieldRow(ctrl: goldQtyCtrl, label: 'الكمية', suffix: 'غرام'),
-              _FieldRow(
-                  ctrl: goldCostCtrl,
-                  label: 'سعر شراء الغرام',
-                  suffix: '\$'),
-            ],
+            entries: goldEntries,
+            onAdd: onAddGold,
+            onRemove: onRemoveGold,
           ),
-          _AssetSection(
+          _MetalSection(
             icon: '⚪',
             title: 'فضة',
             enabled: silverOn,
             onToggle: onSilverToggle,
-            fields: [
-              _FieldRow(ctrl: silverQtyCtrl, label: 'الكمية', suffix: 'غرام'),
-              _FieldRow(
-                  ctrl: silverCostCtrl,
-                  label: 'سعر شراء الغرام',
-                  suffix: '\$'),
-            ],
+            entries: silverEntries,
+            onAdd: onAddSilver,
+            onRemove: onRemoveSilver,
           ),
-          _AssetSection(
-            icon: '₿',
-            title: 'كريبتو',
+          _CryptoSection(
             enabled: cryptoOn,
             onToggle: onCryptoToggle,
-            fields: [
-              _FieldRow(
-                  ctrl: cryptoNameCtrl,
-                  label: 'اسم العملة',
-                  suffix: '',
-                  isText: true),
-              _FieldRow(
-                  ctrl: cryptoSymbolCtrl,
-                  label: 'الرمز',
-                  suffix: '',
-                  isText: true),
-              _FieldRow(ctrl: cryptoQtyCtrl, label: 'الكمية', suffix: ''),
-              _FieldRow(
-                  ctrl: cryptoCostCtrl,
-                  label: 'سعر الشراء للوحدة',
-                  suffix: '\$'),
-            ],
+            entries: cryptoEntries,
+            onAdd: onAddCrypto,
+            onRemove: onRemoveCrypto,
           ),
           ...customAssets.asMap().entries.map((e) => _CustomAssetCard(
                 asset: e.value,
@@ -486,6 +550,355 @@ class _StepAssets extends StatelessWidget {
             label: const Text('إضافة أصل مخصص'),
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetalSection extends StatelessWidget {
+  final String icon, title;
+  final bool enabled;
+  final ValueChanged<bool> onToggle;
+  final List<_MetalEntry> entries;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  const _MetalSection({
+    required this.icon,
+    required this.title,
+    required this.enabled,
+    required this.onToggle,
+    required this.entries,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: enabled
+              ? AppTheme.primary.withValues(alpha: 0.4)
+              : const Color(0xFFEFEFEF),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => onToggle(!enabled),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Text(icon, style: const TextStyle(fontSize: 22)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(title,
+                        style: Theme.of(context).textTheme.titleSmall),
+                  ),
+                  Switch(
+                    value: enabled,
+                    onChanged: onToggle,
+                    activeThumbColor: AppTheme.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (enabled) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  ...entries.asMap().entries.map((e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _MetalEntryCard(
+                          entry: e.value,
+                          index: e.key,
+                          canRemove: entries.length > 1,
+                          onRemove: () => onRemove(e.key),
+                        ),
+                      )),
+                  OutlinedButton.icon(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('إضافة شراء آخر'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MetalEntryCard extends StatelessWidget {
+  final _MetalEntry entry;
+  final int index;
+  final bool canRemove;
+  final VoidCallback onRemove;
+
+  const _MetalEntryCard({
+    required this.entry,
+    required this.index,
+    required this.canRemove,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'شراء ${index + 1}',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(color: AppTheme.textSecondary),
+              ),
+              const Spacer(),
+              if (canRemove)
+                GestureDetector(
+                  onTap: onRemove,
+                  child: const Icon(Icons.close,
+                      size: 18, color: AppTheme.error),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: entry.qtyCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'الكمية',
+                    suffixText: 'غرام',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: entry.costCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'سعر الغرام',
+                    suffixText: '\$',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CryptoSection extends StatelessWidget {
+  final bool enabled;
+  final ValueChanged<bool> onToggle;
+  final List<_CryptoEntry> entries;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  const _CryptoSection({
+    required this.enabled,
+    required this.onToggle,
+    required this.entries,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: enabled
+              ? AppTheme.primary.withValues(alpha: 0.4)
+              : const Color(0xFFEFEFEF),
+        ),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => onToggle(!enabled),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Text('₿', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('كريبتو',
+                        style: Theme.of(context).textTheme.titleSmall),
+                  ),
+                  Switch(
+                    value: enabled,
+                    onChanged: onToggle,
+                    activeThumbColor: AppTheme.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (enabled) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  ...entries.asMap().entries.map((e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CryptoEntryCard(
+                          entry: e.value,
+                          index: e.key,
+                          canRemove: entries.length > 1,
+                          onRemove: () => onRemove(e.key),
+                        ),
+                      )),
+                  OutlinedButton.icon(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('إضافة عملة أخرى'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CryptoEntryCard extends StatelessWidget {
+  final _CryptoEntry entry;
+  final int index;
+  final bool canRemove;
+  final VoidCallback onRemove;
+
+  const _CryptoEntryCard({
+    required this.entry,
+    required this.index,
+    required this.canRemove,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'عملة ${index + 1}',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(color: AppTheme.textSecondary),
+              ),
+              const Spacer(),
+              if (canRemove)
+                GestureDetector(
+                  onTap: onRemove,
+                  child: const Icon(Icons.close,
+                      size: 18, color: AppTheme.error),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: entry.nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'الاسم',
+                    hintText: 'Bitcoin',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: entry.symbolCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: 'الرمز',
+                    hintText: 'BTC',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: entry.qtyCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'الكمية',
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: entry.costCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'سعر الشراء',
+                    suffixText: '\$',
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

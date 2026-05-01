@@ -28,6 +28,7 @@ import 'features/transactions/presentation/add_category_screen.dart';
 import 'features/transactions/presentation/add_transaction_screen.dart';
 import 'features/transactions/presentation/categories_management_screen.dart';
 import 'features/transactions/presentation/recurring_rules_screen.dart';
+import 'screens/import/import_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -61,7 +62,7 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'import',
           parentNavigatorKey: _rootNavigatorKey,
-          builder: (context, state) => const _ImportPlaceholder(),
+          builder: (context, state) => const ImportScreen(),
         ),
       ],
     ),
@@ -69,6 +70,12 @@ final GoRouter appRouter = GoRouter(
       path: '/subscription',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const SubscriptionScreen(),
+    ),
+    // ── Import (accessible from Settings too) ───────────────────────────────
+    GoRoute(
+      path: '/import',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ImportScreen(),
     ),
     // ── Categories (root-level full-screen) ─────────────────────────────────
     GoRoute(
@@ -125,7 +132,13 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: 'formula-builder',
                   parentNavigatorKey: _rootNavigatorKey,
-                  builder: (context, state) => const FormulaBuilderScreen(),
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    return FormulaBuilderScreen(
+                      initialTitle: extra?['title'] as String?,
+                      initialFormulaJson: extra?['formulaJson'] as String?,
+                    );
+                  },
                 ),
                 GoRoute(
                   path: 'customize',
@@ -226,14 +239,4 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
-class _ImportPlaceholder extends StatelessWidget {
-  const _ImportPlaceholder();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('استيراد Excel')),
-      body: const Center(child: Text('قريباً')),
-    );
-  }
-}

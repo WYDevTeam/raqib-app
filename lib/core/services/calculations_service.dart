@@ -40,12 +40,7 @@ class CalculationsService {
       0.0,
       (sum, d) => sum + d.paidAmount - d.totalAmount,
     );
-    // Amanah held: cash received (amount), cash returned out (returnedAmount)
-    final fromAmanah = _amanahBox.values.fold(
-      0.0,
-      (sum, a) => sum + a.amount - a.returnedAmount,
-    );
-    return fromTx + fromDebts + fromAmanah;
+    return fromTx + fromDebts;
   }
 
   // ── Assets ─────────────────────────────────────────────────────────────────
@@ -100,11 +95,7 @@ class CalculationsService {
   // ── Net Worth ──────────────────────────────────────────────────────────────
 
   double getNetWorthConservative() {
-    double nw = getLiquidCash() + getTotalAssetsValue();
-    if (_settings.amanahDeductedFromNetWorth) {
-      nw -= getTotalAmanah();
-    }
-    return nw;
+    return getLiquidCash() + getTotalAssetsValue();
   }
 
   double getNetWorthTotal() {

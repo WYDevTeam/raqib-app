@@ -14,6 +14,8 @@ class DashboardSummary {
   final double totalAssetsValue;
   final double totalAmanah;
   final double totalDebtsOwed;
+  final double spendingRate;
+  final double investmentRatio;
   final List<ReminderItem> reminders;
   final Map<String, double> customWidgetValues;
 
@@ -31,6 +33,8 @@ class DashboardSummary {
     required this.totalAssetsValue,
     required this.totalAmanah,
     required this.totalDebtsOwed,
+    required this.spendingRate,
+    required this.investmentRatio,
     required this.reminders,
     this.customWidgetValues = const {},
   });

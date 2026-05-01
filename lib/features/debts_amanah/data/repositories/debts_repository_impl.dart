@@ -40,6 +40,16 @@ class DebtsRepositoryImpl implements DebtsRepository {
   }
 
   @override
+  Future<Either<AppFailure, void>> updateDebt(DebtModel debt) async {
+    try {
+      await _debtBox.put(debt.key ?? debt.id, debt);
+      return const Right(null);
+    } catch (e) {
+      return Left(AppFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<AppFailure, void>> recordDebtPayment(String debtId, double amount) async {
     try {
       final debt = _debtBox.get(debtId);
@@ -84,6 +94,16 @@ class DebtsRepositoryImpl implements DebtsRepository {
   Future<Either<AppFailure, void>> addAmanah(AmanahModel amanah) async {
     try {
       await _amanahBox.put(amanah.id, amanah);
+      return const Right(null);
+    } catch (e) {
+      return Left(AppFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<AppFailure, void>> updateAmanah(AmanahModel amanah) async {
+    try {
+      await _amanahBox.put(amanah.key ?? amanah.id, amanah);
       return const Right(null);
     } catch (e) {
       return Left(AppFailure(e.toString()));

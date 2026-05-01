@@ -108,18 +108,20 @@ class RecurringCubit extends Cubit<RecurringState> {
   /// Stop a rule (sets isActive=false). Does NOT delete past transactions.
   Future<void> stopRule(RecurringRuleEntity rule) async {
     final result = await _stopRule(rule);
-    result.fold(
-      (f) => emit(RecurringError(f.message)),
-      (_) => loadRules(),
-    );
+    if (result is Left) {
+      emit(RecurringError((result as Left).value.message));
+      return;
+    }
+    await loadRules();
   }
 
   /// Re-activate a stopped rule.
   Future<void> resumeRule(RecurringRuleEntity rule) async {
     final result = await _resumeRule(rule);
-    result.fold(
-      (f) => emit(RecurringError(f.message)),
-      (_) => loadRules(),
-    );
+    if (result is Left) {
+      emit(RecurringError((result as Left).value.message));
+      return;
+    }
+    await loadRules();
   }
 }

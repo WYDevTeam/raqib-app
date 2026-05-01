@@ -41,11 +41,15 @@ class _OnboardingView extends StatelessWidget {
           final loading = state is OnboardingLoading;
           return Scaffold(
             body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Spacer(),
                     Icon(
@@ -105,7 +109,10 @@ class _OnboardingView extends StatelessWidget {
                 ),
               ),
             ),
-          );
+          ],
+        ),
+      ),
+    );
         },
       ),
     );

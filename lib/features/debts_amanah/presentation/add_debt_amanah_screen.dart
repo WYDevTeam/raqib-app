@@ -166,9 +166,46 @@ class _AddDebtAmanahScreenState extends State<AddDebtAmanahScreen> {
     setState(() => _isSaving = true);
 
     final cubit = context.read<DebtsCubit>();
+    final state = cubit.state;
     final name = _nameCtrl.text.trim();
     final amount = double.parse(_amountCtrl.text.trim());
     final note = _noteCtrl.text.trim();
+
+    if (state is DebtsLoaded) {
+      if (_isDebt) {
+        final existing = state.activeDebts
+            .where((d) => d.personName.trim().toLowerCase() == name.toLowerCase())
+            .firstOrNull;
+        if (existing != null) {
+          final shouldMerge = await _showDuplicateDialog(name);
+          if (shouldMerge == null) {
+            setState(() => _isSaving = false);
+            return;
+          }
+          if (shouldMerge) {
+            await cubit.addAmountToExistingDebt(existing, amount, note);
+            if (mounted && cubit.state is! DebtsError) context.pop(true);
+            return;
+          }
+        }
+      } else {
+        final existing = state.activeAmanah
+            .where((a) => a.personName.trim().toLowerCase() == name.toLowerCase())
+            .firstOrNull;
+        if (existing != null) {
+          final shouldMerge = await _showDuplicateDialog(name);
+          if (shouldMerge == null) {
+            setState(() => _isSaving = false);
+            return;
+          }
+          if (shouldMerge) {
+            await cubit.addAmountToExistingAmanah(existing, amount, note);
+            if (mounted && cubit.state is! DebtsError) context.pop(true);
+            return;
+          }
+        }
+      }
+    }
 
     if (_isDebt) {
       await cubit.addDebt(
@@ -189,5 +226,33 @@ class _AddDebtAmanahScreenState extends State<AddDebtAmanahScreen> {
     if (mounted && cubit.state is! DebtsError) {
       context.pop(true);
     }
+  }
+
+  Future<bool?> _showDuplicateDialog(String name) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('اسم مكرر', style: TextStyle(fontFamily: 'Cairo')),
+        content: Text(
+          'يوجد سجل نشط حالياً باسم "$name". هل تريد دمج هذا المبلغ مع السجل الحالي أم إنشاء بطاقة جديدة؟',
+          style: const TextStyle(fontFamily: 'Cairo'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('إلغاء', style: TextStyle(fontFamily: 'Cairo', color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إنشاء جديد', style: TextStyle(fontFamily: 'Cairo')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white),
+            child: const Text('دمج مع الحالي', style: TextStyle(fontFamily: 'Cairo')),
+          ),
+        ],
+      ),
+    );
   }
 }

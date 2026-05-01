@@ -26,6 +26,8 @@ import '../../features/debts_amanah/domain/usecases/record_amanah_return_usecase
 import '../../features/debts_amanah/domain/usecases/record_debt_payment_usecase.dart';
 import '../../features/debts_amanah/domain/usecases/settle_amanah_usecase.dart';
 import '../../features/debts_amanah/domain/usecases/settle_debt_usecase.dart';
+import '../../features/debts_amanah/domain/usecases/update_amanah_usecase.dart';
+import '../../features/debts_amanah/domain/usecases/update_debt_usecase.dart';
 import '../../features/debts_amanah/presentation/cubit/debts_cubit.dart';
 import '../../features/investments/data/models/asset_model.dart';
 import '../../features/investments/data/models/asset_transaction_model.dart';
@@ -64,6 +66,7 @@ import '../../features/transactions/presentation/cubit/transactions_cubit.dart';
 import '../services/api_service.dart';
 import '../services/calculations_service.dart';
 import '../services/formula_service.dart';
+import '../../services/import/gemini_import_service.dart';
 import '../../features/dashboard/domain/usecases/delete_custom_widget_usecase.dart';
 import '../../features/dashboard/domain/usecases/save_custom_widget_usecase.dart';
 import '../../features/investments/data/repositories/investments_repository_impl.dart';
@@ -103,6 +106,7 @@ Future<void> setupDI() async {
     ),
   );
   sl.registerLazySingleton(() => FormulaService(sl()));
+  sl.registerLazySingleton(() => GeminiImportService());
 
   // ── Datasources ────────────────────────────────────────────────────────────
   sl.registerLazySingleton<TransactionHiveDatasource>(
@@ -205,6 +209,8 @@ Future<void> setupDI() async {
   sl.registerLazySingleton(() => AddAmanahUseCase(sl()));
   sl.registerLazySingleton(() => RecordAmanahReturnUseCase(sl()));
   sl.registerLazySingleton(() => SettleAmanahUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateDebtUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateAmanahUseCase(sl()));
 
   // ── Cubits (factory: fresh instance per screen) ────────────────────────────
   sl.registerFactory(() => TransactionsCubit(sl(), sl(), sl(), sl(), sl()));
@@ -215,7 +221,7 @@ Future<void> setupDI() async {
     () => InvestmentsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerFactory(
-    () => DebtsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
+    () => DebtsCubit(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()),
   );
   sl.registerFactory(
     () => OnboardingCubit(

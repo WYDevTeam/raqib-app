@@ -63,6 +63,13 @@ class DashboardRepositoryImpl implements DashboardRepository {
             _formulaService.evaluate(model.formulaExpression);
       }
 
+      final realIncome = pnl.income;
+      final realExpenses = pnl.expenses;
+      final spendingRate = realIncome > 0 ? realExpenses / realIncome : 0.0;
+      
+      final totalWealth = _calc.getNetWorthTotal();
+      final investmentRatio = totalWealth > 0 ? _calc.getTotalAssetsValue() / totalWealth : 0.0;
+
       return Right(
         DashboardSummary(
           liquidCash: _calc.getLiquidCash(),
@@ -78,6 +85,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
           totalAssetsValue: _calc.getTotalAssetsValue(),
           totalAmanah: _calc.getTotalAmanah(),
           totalDebtsOwed: _calc.getTotalDebtsOwed(),
+          spendingRate: spendingRate,
+          investmentRatio: investmentRatio,
           reminders: reminders,
           customWidgetValues: customWidgetValues,
         ),

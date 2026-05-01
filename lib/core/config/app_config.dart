@@ -16,7 +16,9 @@ class AppConfig {
     }
   }
 
-  static String get geminiApiKey => _env['GEMINI_API_KEY']!;
-  static String get metalsDevApiKey => _env['METALS_DEV_API_KEY']!;
-  static String get binanceBaseUrl => _env['BINANCE_BASE_URL']!;
+  static String get geminiApiKey => _env['GEMINI_API_KEY'] ?? '';
+  static String get groqApiKey => _env['GROQ_API_KEY'] ?? '';
+  static String get cerebrasApiKey => _env['CEREBRAS_API_KEY'] ?? '';
+  static String get metalsDevApiKey => _env['METALS_DEV_API_KEY'] ?? '';
+  static String get binanceBaseUrl => _env['BINANCE_BASE_URL'] ?? 'https://api.binance.com/api/v3';
 }

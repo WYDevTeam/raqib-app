@@ -11,6 +11,8 @@ import '../../domain/usecases/record_amanah_return_usecase.dart';
 import '../../domain/usecases/record_debt_payment_usecase.dart';
 import '../../domain/usecases/settle_amanah_usecase.dart';
 import '../../domain/usecases/settle_debt_usecase.dart';
+import '../../domain/usecases/update_amanah_usecase.dart';
+import '../../domain/usecases/update_debt_usecase.dart';
 import 'debts_state.dart';
 
 class DebtsCubit extends Cubit<DebtsState> {
@@ -22,6 +24,8 @@ class DebtsCubit extends Cubit<DebtsState> {
   final AddAmanahUseCase _addAmanah;
   final RecordAmanahReturnUseCase _recordAmanahReturn;
   final SettleAmanahUseCase _settleAmanah;
+  final UpdateDebtUseCase _updateDebt;
+  final UpdateAmanahUseCase _updateAmanah;
 
   DebtsCubit(
     this._getDebts,
@@ -32,6 +36,8 @@ class DebtsCubit extends Cubit<DebtsState> {
     this._addAmanah,
     this._recordAmanahReturn,
     this._settleAmanah,
+    this._updateDebt,
+    this._updateAmanah,
   ) : super(const DebtsLoading());
 
   Future<void> load() async {
@@ -131,6 +137,58 @@ class DebtsCubit extends Cubit<DebtsState> {
 
   Future<void> settleAmanah(String amanahId) async {
     final result = await _settleAmanah(amanahId);
+    if (result.isLeft) {
+      result.fold((f) => emit(DebtsError(f.message)), (_) {});
+      return;
+    }
+    await load();
+  }
+
+  Future<void> addAmountToExistingDebt(DebtModel existingDebt, double addedAmount, String note) async {
+    String newNote = existingDebt.note;
+    if (note.isNotEmpty && !newNote.contains(note)) {
+      newNote = '${existingDebt.note} | $note'.trim();
+      if (newNote.startsWith('|')) newNote = newNote.substring(1).trim();
+    }
+    
+    final updatedDebt = DebtModel(
+      id: existingDebt.id,
+      personName: existingDebt.personName,
+      totalAmount: existingDebt.totalAmount + addedAmount,
+      paidAmount: existingDebt.paidAmount,
+      givenDateMs: existingDebt.givenDateMs,
+      dueDateMs: existingDebt.dueDateMs,
+      note: newNote,
+      isSettled: existingDebt.isSettled,
+    );
+
+    final result = await _updateDebt(updatedDebt);
+    if (result.isLeft) {
+      result.fold((f) => emit(DebtsError(f.message)), (_) {});
+      return;
+    }
+    await load();
+  }
+
+  Future<void> addAmountToExistingAmanah(AmanahModel existingAmanah, double addedAmount, String note) async {
+    String newNote = existingAmanah.note;
+    if (note.isNotEmpty && !newNote.contains(note)) {
+      newNote = '${existingAmanah.note} | $note'.trim();
+      if (newNote.startsWith('|')) newNote = newNote.substring(1).trim();
+    }
+    
+    final updatedAmanah = AmanahModel(
+      id: existingAmanah.id,
+      personName: existingAmanah.personName,
+      amount: existingAmanah.amount + addedAmount,
+      receivedDateMs: existingAmanah.receivedDateMs,
+      expectedReturnDateMs: existingAmanah.expectedReturnDateMs,
+      note: newNote,
+      isReturned: existingAmanah.isReturned,
+      returnedAmount: existingAmanah.returnedAmount,
+    );
+
+    final result = await _updateAmanah(updatedAmanah);
     if (result.isLeft) {
       result.fold((f) => emit(DebtsError(f.message)), (_) {});
       return;
