@@ -548,9 +548,11 @@ class _DashboardViewState extends State<_DashboardView> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      widget.title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(

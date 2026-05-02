@@ -12,9 +12,7 @@ import '../../models/import/parsed_items.dart';
 import '../../models/import/user_answer.dart';
 
 class GeminiImportService {
-  static const String _cerebrasApiUrl =
-      'https://api.cerebras.ai/v1/chat/completions';
-  static const String _cerebrasModel = 'llama-3.1-8b';
+  static const String _groqModel = 'llama-3.1-8b-instant';
 
   // ────────────────────────────────────────────────────────────────────────────
   // PUBLIC API
@@ -42,14 +40,14 @@ class GeminiImportService {
       allCategories: allCategories,
     );
 
-    final apiKey = AppConfig.cerebrasApiKey;
+    final apiKey = AppConfig.groqApiKey;
     if (apiKey.isEmpty) {
       throw Exception(
-        'لم يتم العثور على مفتاح Cerebras API (CEREBRAS_API_KEY) في ملف .env',
+        'لم يتم العثور على مفتاح Groq API (GROQ_API_KEY) في ملف .env',
       );
     }
 
-    final rawJson = await _callCerebras(prompt, apiKey);
+    final rawJson = await _callGemini(prompt, apiKey);
     final cleaned = _cleanJson(rawJson);
 
     final Map<String, dynamic> data;
@@ -57,7 +55,7 @@ class GeminiImportService {
       data = jsonDecode(cleaned) as Map<String, dynamic>;
     } catch (e) {
       throw Exception(
-        'فشل تحليل استجابة Cerebras: $e\n\nالاستجابة:\n${cleaned.substring(0, cleaned.length.clamp(0, 200))}',
+        'فشل تحليل استجابة Gemini: $e\n\nالاستجابة:\n${cleaned.substring(0, cleaned.length.clamp(0, 200))}',
       );
     }
 
@@ -79,7 +77,7 @@ class GeminiImportService {
         notes: parsed.notes,
       );
     } catch (e) {
-      throw Exception('خطأ في معالجة نتيجة Cerebras: $e');
+      throw Exception('خطأ في معالجة نتيجة Gemini: $e');
     }
 
     return analysis;
@@ -98,7 +96,7 @@ class GeminiImportService {
     final dataRows = allRows.skip(analysis.dataStartRow).toList();
 
     final finalResult = ImportResult.empty();
-    const batchSize = 30; // Cerebras بلا قيود TPM — 30 صف/دفعة للسرعة القصوى
+    const batchSize = 40;
 
     for (int i = 0; i < dataRows.length; i += batchSize) {
       final end = (i + batchSize).clamp(0, dataRows.length);
@@ -129,9 +127,9 @@ class GeminiImportService {
         onProgress(end, dataRows.length);
       }
 
-      // تأخير بين الدفعات: 2 ثوانٍ = ~20 طلب/دقيقة (أقل من 30 RPM المسموح في Groq)
+      // Groq free tier TPM recovery: wait 35s between batches to avoid 429
       if (end < dataRows.length) {
-        await Future.delayed(const Duration(seconds: 1)); // Cerebras سريع — 1 ثانية تأخير كافية
+        await Future.delayed(const Duration(seconds: 35));
       }
     }
 
@@ -191,7 +189,11 @@ class GeminiImportService {
           final n = (cell as num).toDouble();
           if (n >= 25569 && n <= 54789 && n == n.truncateToDouble()) {
             try {
-              final date = DateTime(1899, 12, 30).add(Duration(days: n.toInt()));
+              final date = DateTime(
+                1899,
+                12,
+                30,
+              ).add(Duration(days: n.toInt()));
               return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
             } catch (_) {}
           }
@@ -249,14 +251,14 @@ class GeminiImportService {
       rowsText: rowsText,
     );
 
-    final apiKey = AppConfig.cerebrasApiKey;
+    final apiKey = AppConfig.groqApiKey;
     if (apiKey.isEmpty) {
       throw Exception(
-        'لم يتم العثور على مفتاح Cerebras API (CEREBRAS_API_KEY) في ملف .env',
+        'لم يتم العثور على مفتاح Groq API (GROQ_API_KEY) في ملف .env',
       );
     }
 
-    final rawJson = await _callCerebras(prompt, apiKey);
+    final rawJson = await _callGemini(prompt, apiKey);
     final cleaned = _cleanJson(rawJson);
 
     final Map<String, dynamic> data;
@@ -269,7 +271,7 @@ class GeminiImportService {
     try {
       return ImportResult.fromJson(data);
     } catch (e) {
-      throw Exception('خطأ في تحويل بيانات Cerebras: $e');
+      throw Exception('خطأ في تحويل بيانات Gemini: $e');
     }
   }
 
@@ -393,137 +395,53 @@ ${allCategories.join(', ')}
     };
 
     return '''
-أنت محلل بيانات مالية. صنّف البيانات التالية.
+Classify financial rows. JSON only, no explanation.
 
-=== هيكل الملف ===
-- عمود التاريخ: ${analysis.detectedColumns['date']}
-- عمود المبلغ: ${analysis.detectedColumns['amount']}
-- عمود الكاتيغوري: ${analysis.detectedColumns['category']}
-- عمود الوصف: ${analysis.detectedColumns['description'] ?? 'غير موجود'}
-- عمود النوع: ${analysis.detectedColumns['type'] ?? 'غير موجود'}
-- طريقة تمييز الدخل/المصروف: $amountGuide
+COLS: date=${analysis.detectedColumns['date']} amount=${analysis.detectedColumns['amount']} category=${analysis.detectedColumns['category']} desc=${analysis.detectedColumns['description'] ?? 'none'} type=${analysis.detectedColumns['type'] ?? 'none'}
+AMOUNT: $amountGuide
+DECISIONS: $decisionsText
 
-=== قرارات المستخدم — اتبعها حرفياً ===
-$decisionsText
+TYPES:
+transaction → category: salary|freelance|food|transport|rent|bills|health|family|travel|entertainment|other
+  salary:راتب,Pay | freelance:Commission,Bonus,Tips | food:طعام,مطعم,بقالة | transport:تاكسي,بنزين,Uber | rent:إيجار | bills:فواتير,كهرباء,انترنت | health:دكتور,دواء | family:أهل,عيلة | travel:سفر,طيران | entertainment:ترفيه,سينما | other:anything_else
+asset_transaction → gold(XAU,ذهب,gram) silver(XAG,فضة,gram) crypto(USDT,BTC,ETH,USDT) | negative/expense=buy positive/income=sell | quantity+price from desc else null
+debt → money given to person | amount positive | person_name from category/desc
+amanah → money held for person | amount positive | person_name from desc
+unclear → only truly missing/contradictory data; never for user decisions
 
-=== قواعد التصنيف ===
-
-→ transaction (معاملة عادية):
-الفئات: salary | freelance | food | transport | rent |
-         bills | health | family | travel | entertainment | other
-- راتب, Pay → salary
-- Commission, Award, Tips, Bonus, عمل حر → freelance
-- طعام, مطعم, بقالة → food
-- تاكسي, مواصلات, بنزين → transport
-- إيجار → rent
-- فواتير, انترنت, كهرباء → bills
-- صحة, دكتور, دواء → health
-- أهل, عيلة, والدين → family
-- سفر, رحلة, طيران → travel
-- ترفيه, رياضة, سينما → entertainment
-- أي شيء آخر → other
-
-→ asset_transaction (استثمار):
-- Gold / ذهب / XAU → asset_type: gold, unit: gram
-- Silver / فضة / XAG → asset_type: silver, unit: gram
-- Crypto / USDT / BTC / ETH → asset_type: crypto, unit: USDT
-- expense أو سالب → transaction_type: buy
-- income أو موجب → transaction_type: sell
-- الكمية والسعر من الوصف إن وُجدا، وإلا null
-
-→ debt (دين أعطيته):
-- amount موجب دائماً
-- person_name من الكاتيغوري أو الوصف
-
-→ amanah (أمانة عندك):
-- amount موجب دائماً
-- person_name من الوصف
-
-→ unclear:
-- فقط لو البيانات ناقصة أو متناقضة فعلاً
-- لا تضع في unclear ما قرر فيه المستخدم
-
-=== البيانات ===
+DATA:
 $rowsText
 
-=== JSON فقط بلا أي كلام ===
-
-{
-  "transactions": [
-    {
-      "date": "YYYY-MM-DD",
-      "amount": 0.0,
-      "type": "income أو expense",
-      "category": "من القائمة",
-      "description": "وصف مختصر"
-    }
-  ],
-  "asset_transactions": [
-    {
-      "date": "YYYY-MM-DD",
-      "asset_type": "gold أو silver أو crypto",
-      "transaction_type": "buy أو sell",
-      "quantity": 0.0,
-      "price_per_unit": 0.0,
-      "unit": "gram أو USDT",
-      "description": ""
-    }
-  ],
-  "debts": [
-    {
-      "date": "YYYY-MM-DD",
-      "person_name": "",
-      "amount": 0.0,
-      "notes": ""
-    }
-  ],
-  "amanahs": [
-    {
-      "date": "YYYY-MM-DD",
-      "person_name": "",
-      "amount": 0.0,
-      "notes": ""
-    }
-  ],
-  "unclear": [
-    {
-      "row_index": 0,
-      "original_data": "",
-      "reason": ""
-    }
-  ]
-}
+{"transactions":[{"date":"YYYY-MM-DD","amount":0.0,"type":"income|expense","category":"","description":""}],"asset_transactions":[{"date":"YYYY-MM-DD","asset_type":"gold|silver|crypto","transaction_type":"buy|sell","quantity":0.0,"price_per_unit":0.0,"unit":"gram|USDT","description":""}],"debts":[{"date":"YYYY-MM-DD","person_name":"","amount":0.0,"notes":""}],"amanahs":[{"date":"YYYY-MM-DD","person_name":"","amount":0.0,"notes":""}],"unclear":[{"row_index":0,"original_data":"","reason":""}]}
 ''';
   }
 
   // ────────────────────────────────────────────────────────────────────────────
-  // PRIVATE — CEREBRAS HTTP (OpenAI-compatible)
+  // PRIVATE — GROQ HTTP
   // ────────────────────────────────────────────────────────────────────────────
 
-  static Future<String> _callCerebras(
+  static Future<String> _callGemini(
     String prompt,
     String apiKey, {
     int retryCount = 0,
   }) async {
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+
     try {
-      print('=== [Cerebras API] Sending request (Attempt ${retryCount + 1}) ===');
+      print('=== [Groq API] Sending request (Attempt ${retryCount + 1}) ===');
       final response = await http
           .post(
-            Uri.parse(_cerebrasApiUrl),
+            Uri.parse(url),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $apiKey',
             },
             body: jsonEncode({
-              'model': _cerebrasModel,
+              'model': _groqModel,
               'messages': [
-                {
-                  'role': 'user',
-                  'content': prompt,
-                },
+                {'role': 'user', 'content': prompt},
               ],
               'temperature': 0.1,
-              'max_tokens': 8192,
               'response_format': {'type': 'json_object'},
             }),
           )
@@ -532,20 +450,21 @@ $rowsText
       if (response.statusCode == 429 || response.statusCode == 503) {
         if (retryCount >= 4) {
           throw Exception(
-            'Cerebras: الخادم مشغول أو تم تجاوز الحد الأقصى للطلبات (${response.statusCode}). يرجى المحاولة لاحقاً.',
+            'Groq: الخادم مشغول أو تم تجاوز الحد الأقصى للطلبات (${response.statusCode}). يرجى المحاولة لاحقاً.',
           );
         }
-        // استخرج retry-after من الهيدر إن وُجد
-        final retryAfter = int.tryParse(response.headers['retry-after'] ?? '10') ?? 10;
+        final retryAfter =
+            int.tryParse(response.headers['retry-after'] ?? '10') ?? 10;
+        final backoff = (retryAfter * (1 << retryCount)).clamp(10, 120);
         print(
-          '=== [Cerebras API] Rate limited (${response.statusCode}). Retrying in $retryAfter seconds... ===',
+          '=== [Groq API] Rate limited (${response.statusCode}). Retrying in $backoff seconds... ===',
         );
-        await Future.delayed(Duration(seconds: retryAfter + 2));
-        return _callCerebras(prompt, apiKey, retryCount: retryCount + 1);
+        await Future.delayed(Duration(seconds: backoff));
+        return _callGemini(prompt, apiKey, retryCount: retryCount + 1);
       }
 
       print(
-        '=== [Cerebras API] Response received (Status: ${response.statusCode}) ===',
+        '=== [Groq API] Response received (Status: ${response.statusCode}) ===',
       );
 
       if (response.statusCode != 200) {
@@ -557,40 +476,37 @@ $rowsText
             errorMsg = err['message']?.toString() ?? errorMsg;
           }
         } catch (_) {}
-        throw Exception('Cerebras: $errorMsg');
+        throw Exception('Groq: $errorMsg');
       }
 
       final Map<String, dynamic> data;
       try {
         data = jsonDecode(response.body) as Map<String, dynamic>;
       } catch (_) {
-        throw Exception('Cerebras أرجع استجابة غير صالحة (ليست JSON).');
+        throw Exception('Groq أرجع استجابة غير صالحة (ليست JSON).');
       }
 
       if (data.containsKey('error')) {
         final err = data['error'];
-        throw Exception('Cerebras: ${err['message'] ?? 'خطأ غير معروف'}');
+        throw Exception('Groq: ${err['message'] ?? 'خطأ غير معروف'}');
       }
 
       final choices = data['choices'] as List<dynamic>?;
       if (choices == null || choices.isEmpty) {
-        throw Exception('Cerebras لم يُرجع نتائج (choices فارغة أو null).');
+        throw Exception('Groq لم يُرجع نتائج (choices فارغة أو null).');
       }
 
-      final message = (choices[0] as Map<String, dynamic>?)?['message'];
-      if (message == null) {
-        throw Exception('Cerebras: message = null في الاستجابة.');
-      }
-
-      final text = (message as Map<String, dynamic>)['content']?.toString();
+      final text =
+          (choices[0] as Map<String, dynamic>)['message']?['content']
+              ?.toString();
       if (text == null || text.isEmpty) {
-        throw Exception('Cerebras: content = null أو فارغ في الاستجابة.');
+        throw Exception('Groq: content = null أو فارغ في الاستجابة.');
       }
 
       return text;
     } on TimeoutException {
       throw Exception(
-        'انتهت مهلة الاتصال بـ Cerebras (60 ثانية). الخادم مزدحم أو الإنترنت ضعيف.',
+        'انتهت مهلة الاتصال بـ Groq (60 ثانية). الخادم مزدحم أو الإنترنت ضعيف.',
       );
     } on SocketException {
       throw Exception('لا يوجد اتصال بالإنترنت. تحقق من شبكتك وحاول مجدداً.');
