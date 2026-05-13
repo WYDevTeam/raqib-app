@@ -4,7 +4,8 @@
       "Skill(update-config)",
       "Bash(flutter build *)",
       "Bash(flutter run *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "WebFetch(domain:salamhack.com)"
     ]
   }
 }
