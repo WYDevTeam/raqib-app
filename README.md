@@ -1,4 +1,4 @@
-# راقب — Raqib
+# راقب - Raqib
 
 **"Know your numbers. Own your future."**
 
@@ -6,14 +6,14 @@
 
 > 🏆 Built during **[Salam Hack 2026](https://salamhack.com/index.html#in-hackathon)** — a fintech hackathon focused on financial literacy and management tools for Arabic speakers
 
-<!-- Add a banner/hero screenshot here (recommended: 1000x480px) -->
-<!-- <img width="1000" height="480" alt="Raqib Home" src="..."> -->
+<img width="1810" height="869" alt="banner" src="https://github.com/user-attachments/assets/463f42d2-bfbf-41a0-a7c5-e9bfaea5f6e3" />
+
 
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)](https://flutter.dev)
 
 ## Team Members
-- **Wafaa** — [@WafaaSisalem](https://github.com/WafaaSisalem)
-- **Yasmeen Abu Shaar**
+- **Wafaa** - [@WafaaSisalem](https://github.com/WafaaSisalem)
+- **Yasmeen Abu Shaar** - [@yasmeenaothman](https://github.com/yasmeenaothman)
 
 ## Table of Contents
 1. [Features](#features)
@@ -26,6 +26,7 @@
 ---
 
 ## Features
+<img width="1024" height="412" alt="image" src="https://github.com/user-attachments/assets/5f397a71-e673-4eff-9de7-46afeaf37b46" />
 
 ### 📊 Smart Dashboard
 - Real net worth card with **Conservative / Total** toggle
@@ -99,11 +100,7 @@
    flutter pub get
    ```
 
-2. Create a `.env` file in the project root:
-   ```env
-   GROQ_API_KEY=your_groq_api_key
-   METALS_DEV_API_KEY=your_metals_dev_api_key
-   ```
+2. Create a `.env` file in the project root follow .env.example file (you'll find it in the root).
 
 3. Run the app
    ```bash
